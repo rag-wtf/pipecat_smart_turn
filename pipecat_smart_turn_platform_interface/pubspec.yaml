@@ -1,0 +1,17 @@
+name: pipecat_smart_turn_platform_interface
+description: A common platform interface for the pipecat_smart_turn plugin.
+version: 0.1.0+1
+
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^10.2.0

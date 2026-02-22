@@ -1,0 +1,26 @@
+name: pipecat_smart_turn_linux
+description: Linux implementation of the pipecat_smart_turn plugin
+version: 0.1.0+1
+
+
+environment:
+  sdk: ^3.11.0
+
+flutter:
+  plugin:
+    implements: pipecat_smart_turn
+    platforms:
+      linux:
+        pluginClass: PipecatSmartTurnPlugin
+        dartPluginClass: PipecatSmartTurnLinux
+
+dependencies:
+  flutter:
+    sdk: flutter
+  pipecat_smart_turn_platform_interface:
+    path: ../pipecat_smart_turn_platform_interface
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^10.2.0

@@ -1,0 +1,34 @@
+name: license_check
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "pipecat_smart_turn/pubspec.yaml"
+      - "pipecat_smart_turn_platform_interface/pubspec.yaml"
+      - ".github/workflows/license_check.yaml"
+  push:
+    branches:
+      - main
+    paths:
+      - "pipecat_smart_turn/pubspec.yaml"
+      - "pipecat_smart_turn_platform_interface/pubspec.yaml"
+      - ".github/workflows/license_check.yaml"
+
+jobs:
+  license_check:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      working_directory: pipecat_smart_turn
+
+  license_check_platform_interface:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      working_directory: pipecat_smart_turn_platform_interface

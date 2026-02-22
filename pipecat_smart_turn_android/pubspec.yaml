@@ -1,0 +1,28 @@
+name: pipecat_smart_turn_android
+description: Android implementation of the pipecat_smart_turn plugin
+version: 0.1.0+1
+
+
+environment:
+  sdk: ^3.11.0
+
+flutter:
+  plugin:
+    implements: pipecat_smart_turn
+    platforms:
+      android:
+        package: wtf.rag.pipecat.smart.turn
+        pluginClass: PipecatSmartTurnPlugin
+        dartPluginClass: PipecatSmartTurnAndroid
+
+dependencies:
+  flutter:
+    sdk: flutter
+  pipecat_smart_turn_platform_interface:
+    path: ../pipecat_smart_turn_platform_interface
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+  very_good_analysis: ^10.2.0
