@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/audio_preprocessor.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/math_utils.dart'; // softmax2
@@ -18,6 +19,14 @@ class SmartTurnDetector {
 
   /// The configuration for the detector.
   final SmartTurnConfig config;
+
+  /// Overrides the isolate for testing.
+  @visibleForTesting
+  SmartTurnIsolate? isolateOverride;
+
+  /// Overrides the session for testing.
+  @visibleForTesting
+  SmartTurnOnnxSession? sessionOverride;
 
   SmartTurnIsolate? _inferenceIsolate;
   SmartTurnOnnxSession? _session;
@@ -40,13 +49,13 @@ class SmartTurnDetector {
     }
 
     if (config.useIsolate) {
-      _inferenceIsolate = SmartTurnIsolate();
+      _inferenceIsolate = isolateOverride ?? SmartTurnIsolate();
       await _inferenceIsolate!.spawn(
         modelFilePath: modelPath,
         cpuThreadCount: config.cpuThreadCount,
       );
     } else {
-      _session = SmartTurnOnnxSession();
+      _session = sessionOverride ?? SmartTurnOnnxSession();
       await _session!.initialize(
         modelFilePath: modelPath,
         cpuThreadCount: config.cpuThreadCount,

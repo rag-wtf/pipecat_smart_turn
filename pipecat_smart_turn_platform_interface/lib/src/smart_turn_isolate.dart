@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
+import 'package:meta/meta.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/onnx_inference.dart';
 
 /// Configuration passed to the background worker isolate.
-class _IsolateConfig {
-  _IsolateConfig({
+@visibleForTesting
+class IsolateConfig {
+  IsolateConfig({
     required this.modelFilePath,
     required this.cpuThreadCount,
     required this.replyPort,
@@ -18,8 +20,9 @@ class _IsolateConfig {
 }
 
 /// A request sent to the worker isolate.
-class _InferenceRequest {
-  _InferenceRequest(this.audioData);
+@visibleForTesting
+class InferenceRequest {
+  InferenceRequest(this.audioData);
 
   final TransferableTypedData audioData;
 }
@@ -39,7 +42,7 @@ class SmartTurnIsolate {
 
     _isolate = await Isolate.spawn(
       _isolateEntry,
-      _IsolateConfig(
+      IsolateConfig(
         modelFilePath: modelFilePath,
         cpuThreadCount: cpuThreadCount,
         replyPort: receivePort.sendPort,
@@ -49,7 +52,13 @@ class SmartTurnIsolate {
     receivePort.listen((message) {
       if (message is SendPort) {
         _commandPort = message;
-        _initCompleter.complete();
+        if (!_initCompleter.isCompleted) {
+          _initCompleter.complete();
+        }
+      } else if (message is Exception) {
+         if (!_initCompleter.isCompleted) {
+            _initCompleter.completeError(message);
+         }
       }
     });
 
@@ -66,7 +75,7 @@ class SmartTurnIsolate {
     // Use TransferableTypedData for zero-copy transfer of the large audio
     // buffer.
     _commandPort!.send((
-      _InferenceRequest(TransferableTypedData.fromList([audio])),
+      InferenceRequest(TransferableTypedData.fromList([audio])),
       responsePort.sendPort,
     ));
 
@@ -84,19 +93,41 @@ class SmartTurnIsolate {
   }
 
   /// Entry point for the background isolate.
-  static Future<void> _isolateEntry(_IsolateConfig config) async {
+  static Future<void> _isolateEntry(IsolateConfig config) async {
     final commandPort = ReceivePort();
-    config.replyPort.send(commandPort.sendPort);
+    // We do NOT send the port here anymore. runIsolateLoop will signal when ready.
 
     final session = SmartTurnOnnxSession();
+    await runIsolateLoop(
+      commandStream: commandPort,
+      session: session,
+      modelFilePath: config.modelFilePath,
+      cpuThreadCount: config.cpuThreadCount,
+      initErrorPort: config.replyPort,
+      onInitialized: () => config.replyPort.send(commandPort.sendPort),
+    );
+  }
+
+  /// Extracted logic for testing.
+  @visibleForTesting
+  static Future<void> runIsolateLoop({
+    required Stream<dynamic> commandStream,
+    required SmartTurnOnnxSession session,
+    required String modelFilePath,
+    required int cpuThreadCount,
+    required SendPort initErrorPort,
+    required void Function() onInitialized,
+  }) async {
     try {
       await session.initialize(
-        modelFilePath: config.modelFilePath,
-        cpuThreadCount: config.cpuThreadCount,
+        modelFilePath: modelFilePath,
+        cpuThreadCount: cpuThreadCount,
       );
 
-      await for (final message in commandPort) {
-        final (request, replyPort) = message as (_InferenceRequest, SendPort);
+      onInitialized();
+
+      await for (final message in commandStream) {
+        final (request, replyPort) = message as (InferenceRequest, SendPort);
         try {
           // materialized() is fast as it just returns a view of the
           // transferred memory.
@@ -108,7 +139,7 @@ class SmartTurnIsolate {
         }
       }
     } on Exception catch (e) {
-      config.replyPort.send(e);
+      initErrorPort.send(e);
     } finally {
       session.dispose();
     }
