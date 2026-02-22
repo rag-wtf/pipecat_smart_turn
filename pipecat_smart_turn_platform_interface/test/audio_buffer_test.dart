@@ -66,5 +66,50 @@ void main() {
       expect(buffer.length, equals(0));
       expect(buffer.hasContent, isFalse);
     });
+
+    test('append with empty samples does nothing', () {
+      final buffer = AudioBuffer(maxSeconds: 1);
+      buffer.append(Float32List(0));
+      expect(buffer.length, equals(0));
+    });
+
+    test('append wraps around correctly (exact fit)', () {
+      final buffer = AudioBuffer(maxSeconds: 0.1); // 1600 samples
+      // Fill buffer completely
+      buffer.append(Float32List(1600)..fillRange(0, 1600, 1));
+      // Append more data, exactly fitting remaining space if any (here full rewrite)
+      // Actually let's do partial fill first
+      buffer.clear();
+
+      // buffer size 1600.
+      // Fill 1500.
+      buffer.append(Float32List(1500)..fillRange(0, 1500, 1));
+      // Append 100. Should fit exactly at the end.
+      buffer.append(Float32List(100)..fillRange(0, 100, 2));
+
+      expect(buffer.length, 1600);
+      final output = buffer.toFloat32List();
+      expect(output[0], 1);
+      expect(output[1499], 1);
+      expect(output[1500], 2);
+      expect(output[1599], 2);
+    });
+
+    test('append wraps around correctly (overflow)', () {
+      final buffer = AudioBuffer(maxSeconds: 0.1); // 1600 samples
+      // Fill 1500.
+      buffer.append(Float32List(1500)..fillRange(0, 1500, 1));
+      // Append 200. Should wrap around by 100.
+      buffer.append(Float32List(200)..fillRange(0, 200, 2));
+
+      expect(buffer.length, 1600);
+      final output = buffer.toFloat32List();
+      // Oldest 100 samples (from first 1500) are evicted.
+      // Remaining: 1400 samples of 1, then 200 samples of 2.
+      expect(output[0], 1);
+      expect(output[1399], 1);
+      expect(output[1400], 2);
+      expect(output[1599], 2);
+    });
   });
 }

@@ -44,13 +44,64 @@ void main() {
       final output = AudioPreprocessor.int16ToFloat32(input);
       expect(output[0], equals(-1.0));
       expect(output[1], equals(0.0));
-      expect(output[2], closeTo(1.0, 0.0001));
+      expect(output[2], closeTo(1.0, 0.0001)); // 32767/32768
+    });
+
+    test('bytesToFloat32 conversion', () {
+      // Little Endian: 0x00, 0x80 -> -32768
+      // 0x00, 0x00 -> 0
+      // 0xFF, 0x7F -> 32767
+      final input = Uint8List.fromList([
+        0x00, 0x80,
+        0x00, 0x00,
+        0xFF, 0x7F
+      ]);
+      final output = AudioPreprocessor.bytesToFloat32(input);
+      expect(output.length, 3);
+      expect(output[0], equals(-1.0));
+      expect(output[1], equals(0.0));
+      expect(output[2], closeTo(0.999969, 0.0001));
+    });
+
+    test('stereoToMono conversion', () {
+      // L, R, L, R
+      final input = Float32List.fromList([1.0, 0.0, 0.5, 0.5]);
+      final output = AudioPreprocessor.stereoToMono(input);
+      expect(output.length, 2);
+      expect(output[0], 0.5); // (1+0)/2
+      expect(output[1], 0.5); // (0.5+0.5)/2
+    });
+
+    test('resample48To16', () {
+      // Should take every 3rd sample? No, implementation takes every 3rd?
+      // "Simple decimation fallback for 48kHz to 16kHz (drops 2 of 3 samples)."
+      // Code: output[i] = input[i * 3];
+
+      final input = Float32List.fromList([
+        1.0, 2.0, 3.0, // Should take 1.0
+        4.0, 5.0, 6.0, // Should take 4.0
+        7.0, 8.0, 9.0  // Should take 7.0
+      ]);
+      final output = AudioPreprocessor.resample48To16(input);
+      expect(output.length, 3);
+      expect(output[0], 1.0);
+      expect(output[1], 4.0);
+      expect(output[2], 7.0);
     });
 
     test('computeRms', () {
       final audio = Float32List.fromList([0.5, -0.5, 0.5, -0.5]);
       // (0.25 * 4) / 4 = 0.25
       expect(AudioPreprocessor.computeRms(audio), equals(0.25));
+      expect(AudioPreprocessor.computeRms(Float32List(0)), 0.0);
+    });
+
+    test('sampleCountToMs', () {
+      // kSampleRate = 16000
+      // 16000 samples -> 1000ms
+      expect(AudioPreprocessor.sampleCountToMs(16000), 1000);
+      // 8000 samples -> 500ms
+      expect(AudioPreprocessor.sampleCountToMs(8000), 500);
     });
   });
 }

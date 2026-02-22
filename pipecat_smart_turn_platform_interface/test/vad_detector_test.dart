@@ -59,5 +59,17 @@ void main() {
       final speech = Float32List(100)..fillRange(0, 100, 0.3);
       expect(vad.process(speech), equals(VadState.speechStart));
     });
+
+    test('reset clears internal state', () {
+      final vad = EnergyVad();
+      final speech = Float32List(100)..fillRange(0, 100, 0.5);
+      expect(vad.process(speech), equals(VadState.speechStart));
+      expect(vad.process(speech), equals(VadState.speech));
+
+      vad.reset();
+
+      // Should restart speech detection from speechStart
+      expect(vad.process(speech), equals(VadState.speechStart));
+    });
   });
 }
