@@ -2,13 +2,17 @@
 
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
 
-A common platform interface for the `pipecat_smart_turn` plugin.
+A common platform interface for the `pipecat_smart_turn` package.
 
-This interface allows platform-specific implementations of the `pipecat_smart_turn` plugin, as well as the plugin itself, to ensure they are supporting the same interface.
+This package contains the core implementation of the Smart Turn v3 semantic VAD, including:
+- **Audio Preprocessing**: Padding, fade-ins, and format conversion.
+- **Isolate Management**: Background threading for ONNX inference.
+- **VAD Logic**: Energy-based VAD for speech detection.
+- **ONNX Session**: Native inference management.
 
-# Usage
+## Architecture
 
-To implement a new platform-specific implementation of `pipecat_smart_turn`, extend `PipecatSmartTurnPlatform` with an implementation that performs the platform-specific behavior.
+Smart Turn follows a federated plugin structure, but unlike traditional plugins, the core logic is contained within this platform interface to allow for cross-isolate usage and easier testing of pure-Dart logic.
 
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
 [very_good_analysis_link]: https://pub.dev/packages/very_good_analysis
