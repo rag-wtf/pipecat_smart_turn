@@ -14,23 +14,24 @@ void main() {
       methodChannelPipecatSmartTurn = MethodChannelPipecatSmartTurn();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        methodChannelPipecatSmartTurn.methodChannel,
-        (methodCall) async {
-          log.add(methodCall);
-          switch (methodCall.method) {
-            case 'getPlatformName':
-              return kPlatformName;
-            default:
-              return null;
-          }
-        },
-      );
+            methodChannelPipecatSmartTurn.methodChannel,
+            (methodCall) async {
+              log.add(methodCall);
+              switch (methodCall.method) {
+                case 'getPlatformName':
+                  return kPlatformName;
+                default:
+                  return null;
+              }
+            },
+          );
     });
 
     tearDown(log.clear);
 
     test('getPlatformName', () async {
-      final platformName = await methodChannelPipecatSmartTurn.getPlatformName();
+      final platformName = await methodChannelPipecatSmartTurn
+          .getPlatformName();
       expect(
         log,
         <Matcher>[isMethodCall('getPlatformName', arguments: null)],

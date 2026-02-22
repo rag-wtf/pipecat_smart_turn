@@ -1,6 +1,7 @@
 name: pipecat_smart_turn
 description: Pipecat Smart Turn Flutter package
 version: 0.1.0+1
+publish_to: none
 
 
 environment:

@@ -9,7 +9,8 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 ///
 /// Extending this class (using `extends`) ensures that the subclass will get
 /// the default implementation, while platform implementations that `implements`
-/// this interface will be broken by newly added [PipecatSmartTurnPlatform] methods.
+/// this interface will be broken by newly added
+/// [PipecatSmartTurnPlatform] methods.
 /// {@endtemplate}
 abstract class PipecatSmartTurnPlatform extends PlatformInterface {
   /// {@macro pipecat_smart_turn_platform}
@@ -25,7 +26,8 @@ abstract class PipecatSmartTurnPlatform extends PlatformInterface {
   static PipecatSmartTurnPlatform get instance => _instance;
 
   /// Platform-specific plugins should set this with their own platform-specific
-  /// class that extends [PipecatSmartTurnPlatform] when they register themselves.
+  /// class that extends [PipecatSmartTurnPlatform] when they register
+  /// themselves.
   static set instance(PipecatSmartTurnPlatform instance) {
     PlatformInterface.verify(instance, _token);
     _instance = instance;

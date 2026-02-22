@@ -1,6 +1,7 @@
 name: pipecat_smart_turn_web
 description: Web implementation of the pipecat_smart_turn plugin
 version: 0.1.0+1
+publish_to: none
 
 
 environment:
