@@ -7,7 +7,7 @@ Developed with 💙 by [Very Good Ventures][very_good_ventures_link] 🦄
 
 ![coverage][coverage_badge]
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
-[![License: MIT][license_badge]][license_link]
+[![License: BSD-2][license_badge]][license_link]
 
 On-device Semantic Voice Activity Detection (VAD) for Flutter, powered by Smart Turn v3.
 
@@ -41,8 +41,8 @@ if (result?.isComplete ?? false) {
 ```
 
 [coverage_badge]: pipecat_smart_turn/coverage_badge.svg
-[license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[license_link]: https://opensource.org/licenses/MIT
+[license_badge]: https://img.shields.io/badge/license-BSD-2.svg
+[license_link]: https://opensource.org/licenses/BSD-2-Clause
 [logo_black]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_black.png#gh-light-mode-only
 [logo_white]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_white.png#gh-dark-mode-only
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
