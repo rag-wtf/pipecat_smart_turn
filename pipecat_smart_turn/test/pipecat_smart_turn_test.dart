@@ -8,4 +8,8 @@ void main() {
     expect(SmartTurnDetector, isNotNull);
     expect(SmartTurnConfig, isNotNull);
   });
+
+  test('has correct version', () {
+    expect(getPipecatSmartTurnVersion(), '0.1.0+1');
+  });
 }
