@@ -67,8 +67,8 @@ void main() {
       errorPort = ReceivePort();
     });
 
-    tearDown(() async {
-      await commandController.close();
+    tearDown(() {
+      unawaited(commandController.close());
       errorPort.close();
     });
 

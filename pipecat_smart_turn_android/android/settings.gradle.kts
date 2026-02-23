@@ -6,7 +6,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'pipecat_smart_turn_android'
+rootProject.name = "pipecat_smart_turn_android"
 
 plugins {
     id("com.android.library") version "8.12.0" apply false
