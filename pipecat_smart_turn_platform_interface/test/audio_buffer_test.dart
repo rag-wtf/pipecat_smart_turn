@@ -17,6 +17,8 @@ void main() {
       buffer.append(chunk);
       expect(buffer.length, equals(100));
       expect(buffer.hasContent, isTrue);
+      final list = buffer.toFloat32List();
+      expect(list.length, equals(100));
     });
 
     test('clamps to maxSamples and maintains order when overfilled', () {

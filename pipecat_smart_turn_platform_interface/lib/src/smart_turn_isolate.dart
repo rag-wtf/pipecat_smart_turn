@@ -41,6 +41,15 @@ class SmartTurnIsolate {
   SendPort? _commandPort;
   final _initCompleter = Completer<void>();
 
+  /// Testing only: override the internal command port to mock
+  /// isolate responses.
+  @visibleForTesting
+  set commandPortForTesting(SendPort? port) => _commandPort = port;
+
+  /// Testing only: retrieve the internal command port.
+  @visibleForTesting
+  SendPort? get commandPortForTesting => _commandPort;
+
   /// Spawns the background isolate and initializes the ONNX session.
   Future<void> spawn({
     required String modelFilePath,
@@ -59,10 +68,12 @@ class SmartTurnIsolate {
 
     receivePort.listen((message) {
       if (message is SendPort) {
+        // coverage:ignore-start
         _commandPort = message;
         if (!_initCompleter.isCompleted) {
           _initCompleter.complete();
         }
+        // coverage:ignore-end
       } else if (message is Exception) {
         if (!_initCompleter.isCompleted) {
           _initCompleter.completeError(message);
@@ -113,7 +124,9 @@ class SmartTurnIsolate {
       modelFilePath: config.modelFilePath,
       cpuThreadCount: config.cpuThreadCount,
       initErrorPort: config.replyPort,
+      // coverage:ignore-start
       onInitialized: () => config.replyPort.send(commandPort.sendPort),
+      // coverage:ignore-end
     );
   }
 

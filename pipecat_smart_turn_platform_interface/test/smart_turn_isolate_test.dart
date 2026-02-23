@@ -54,6 +54,70 @@ void main() {
     test('kill handles null isolate gracefully', () {
       SmartTurnIsolate().kill();
     });
+
+    test('spawn throws on invalid model and covers isolate entry', () async {
+      final isolate = SmartTurnIsolate();
+      await expectLater(
+        isolate.spawn(
+          modelFilePath: 'non_existent.onnx',
+        ),
+        throwsA(isA<SmartTurnModelLoadException>()),
+      );
+      isolate.kill();
+    });
+
+    test('predict returns result on success', () async {
+      final isolate = SmartTurnIsolate();
+      final receivePort = ReceivePort();
+      isolate.commandPortForTesting = receivePort.sendPort;
+
+      // When isolate receives InferenceRequest, send back a success tuple
+      receivePort.listen((message) {
+        final (_, SendPort replyPort) = message as (InferenceRequest, SendPort);
+        replyPort.send((0.8, 0.2));
+      });
+
+      final result = await isolate.predict(Float32List(128000));
+      expect(result, equals((0.8, 0.2)));
+
+      receivePort.close();
+    });
+
+    test('predict throws on error response', () async {
+      final isolate = SmartTurnIsolate();
+      final receivePort = ReceivePort();
+      isolate.commandPortForTesting = receivePort.sendPort;
+
+      receivePort.listen((message) {
+        final (_, SendPort replyPort) = message as (InferenceRequest, SendPort);
+        replyPort.send(Exception('Isolate Error'));
+      });
+
+      await expectLater(
+        isolate.predict(Float32List(128000)),
+        throwsA(isA<SmartTurnInferenceException>()),
+      );
+
+      receivePort.close();
+    });
+
+    test('predict throws on unexpected response', () async {
+      final isolate = SmartTurnIsolate();
+      final receivePort = ReceivePort();
+      isolate.commandPortForTesting = receivePort.sendPort;
+
+      receivePort.listen((message) {
+        final (_, SendPort replyPort) = message as (InferenceRequest, SendPort);
+        replyPort.send('Unexpected String Response');
+      });
+
+      await expectLater(
+        isolate.predict(Float32List(128000)),
+        throwsA(isA<SmartTurnInferenceException>()),
+      );
+
+      receivePort.close();
+    });
   });
 
   group('runIsolateLoop', () {

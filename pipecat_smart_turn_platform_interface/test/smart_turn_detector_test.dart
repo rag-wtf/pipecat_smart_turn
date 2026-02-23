@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +45,12 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
   bool killCalled = false;
   String? spawnedModelPath;
   int? spawnedCpuThreadCount;
+
+  @override
+  set commandPortForTesting(SendPort? port) {}
+
+  @override
+  SendPort? get commandPortForTesting => null;
 
   @override
   Future<void> spawn({

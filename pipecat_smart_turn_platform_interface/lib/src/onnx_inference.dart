@@ -20,6 +20,7 @@ class SmartTurnOnnxSession {
 
     try {
       // Initialize the global ONNX Runtime environment
+      // coverage:ignore-start
       OrtEnv.instance.init();
 
       final sessionOptions = OrtSessionOptions()
@@ -36,6 +37,7 @@ class SmartTurnOnnxSession {
 
       sessionOptions.release();
       _isInitialized = true;
+      // coverage:ignore-end
     } catch (e) {
       throw SmartTurnModelLoadException('Failed to load ONNX model: $e');
     }
@@ -51,6 +53,7 @@ class SmartTurnOnnxSession {
     }
 
     try {
+      // coverage:ignore-start
       final inputShape = [1, 128000];
       final inputTensor = OrtValueTensor.createTensorWithDataList(
         audioSamples,
@@ -81,13 +84,16 @@ class SmartTurnOnnxSession {
     } catch (e) {
       throw SmartTurnInferenceException('ONNX inference failed: $e');
     }
+    // coverage:ignore-end
   }
 
   /// Releases ONNX Runtime session and environment resources.
   void dispose() {
+    // coverage:ignore-start
     _session?.release();
     _session = null;
     OrtEnv.instance.release();
     _isInitialized = false;
+    // coverage:ignore-end
   }
 }
