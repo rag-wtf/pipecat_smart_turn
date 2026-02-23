@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pipecat_smart_turn_platform_interface/pipecat_smart_turn_platform_interface.dart';
-import 'package:pipecat_smart_turn_platform_interface/src/method_channel_pipecat_smart_turn.dart';
 
 class PipecatSmartTurnPlatformMock extends PipecatSmartTurnPlatform {
   @override
@@ -35,8 +34,9 @@ void main() {
     });
 
     test('getPlatformName throws UnimplementedError by default', () async {
-      // Create a class that extends PlatformInterface but doesn't override getPlatformName
-      // Actually PipecatSmartTurnPlatform itself is abstract but we can extend it
+      // Create a class that extends PlatformInterface but doesn't override
+      // getPlatformName. Actually PipecatSmartTurnPlatform itself is abstract
+      // but we can extend it
       final platform = ExtendsPipecatSmartTurnPlatform();
       expect(
         platform.getPlatformName,

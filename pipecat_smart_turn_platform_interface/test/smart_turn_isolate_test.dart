@@ -52,9 +52,7 @@ void main() {
     );
 
     test('kill handles null isolate gracefully', () {
-      final isolate = SmartTurnIsolate();
-      // Should not throw
-      isolate.kill();
+      SmartTurnIsolate().kill();
     });
   });
 
@@ -69,8 +67,8 @@ void main() {
       errorPort = ReceivePort();
     });
 
-    tearDown(() {
-      commandController.close();
+    tearDown(() async {
+      await commandController.close();
       errorPort.close();
     });
 
@@ -87,7 +85,7 @@ void main() {
       );
 
       // Wait for init
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
       expect(mockSession.initializeCalled, isTrue);
       expect(mockSession.initializedModelPath, 'model.onnx');
@@ -135,7 +133,7 @@ void main() {
       );
 
       // Wait for init
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
       final replyPort = ReceivePort();
       final request = InferenceRequest(
@@ -164,7 +162,7 @@ void main() {
       );
 
       // Wait for init
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
       final replyPort = ReceivePort();
       final request = InferenceRequest(

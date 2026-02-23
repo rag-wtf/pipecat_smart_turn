@@ -92,8 +92,7 @@ void main() {
           useIsolate: false,
           cpuThreadCount: 2,
         ),
-      );
-      detector.sessionOverride = mockSession;
+      )..sessionOverride = mockSession;
 
       await detector.initialize();
 
@@ -108,8 +107,7 @@ void main() {
           customModelPath: 'model.onnx',
           cpuThreadCount: 4,
         ),
-      );
-      detector.isolateOverride = mockIsolate;
+      )..isolateOverride = mockIsolate;
 
       await detector.initialize();
 
@@ -134,8 +132,7 @@ void main() {
           customModelPath: 'model.onnx',
           useIsolate: false,
         ),
-      );
-      detector.sessionOverride = mockSession;
+      )..sessionOverride = mockSession;
       await detector.initialize();
       expect(mockSession.initializeCalled, isTrue);
 
@@ -160,8 +157,7 @@ void main() {
           customModelPath: 'model.onnx',
           useIsolate: false,
         ),
-      );
-      detector.sessionOverride = mockSession;
+      )..sessionOverride = mockSession;
       await detector.initialize();
 
       mockSession.setRunResult(0, 10); // High confidence for complete
@@ -175,8 +171,7 @@ void main() {
     test('predict uses isolate when useIsolate is true', () async {
       detector = SmartTurnDetector(
         config: const SmartTurnConfig(customModelPath: 'model.onnx'),
-      );
-      detector.isolateOverride = mockIsolate;
+      )..isolateOverride = mockIsolate;
       await detector.initialize();
 
       mockIsolate.setPredictResult(10, 0); // High confidence for incomplete
@@ -193,8 +188,7 @@ void main() {
           customModelPath: 'model.onnx',
           useIsolate: false,
         ),
-      );
-      detector.sessionOverride = mockSession;
+      )..sessionOverride = mockSession;
       await detector.initialize();
       await detector.dispose();
 
@@ -204,8 +198,7 @@ void main() {
     test('dispose clears isolate resources', () async {
       detector = SmartTurnDetector(
         config: const SmartTurnConfig(customModelPath: 'model.onnx'),
-      );
-      detector.isolateOverride = mockIsolate;
+      )..isolateOverride = mockIsolate;
       await detector.initialize();
       await detector.dispose();
 
@@ -224,14 +217,14 @@ void main() {
           customModelPath: 'model.onnx',
           useIsolate: false,
         ),
-      );
-      detector.sessionOverride = slowSession;
+      )..sessionOverride = slowSession;
       await detector.initialize();
 
       // Start first prediction
       final future1 = detector.predict(Float32List(16000));
 
-      // Start second prediction immediately. It should return null because processing is true.
+      // Start second prediction immediately. It should return null because
+      // processing is true.
       final result2 = await detector.predict(Float32List(16000));
       expect(result2, isNull);
 

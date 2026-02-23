@@ -8,22 +8,30 @@ import 'package:pipecat_smart_turn_platform_interface/src/onnx_inference.dart';
 /// Configuration passed to the background worker isolate.
 @visibleForTesting
 class IsolateConfig {
+  /// Creates an [IsolateConfig].
   IsolateConfig({
     required this.modelFilePath,
     required this.cpuThreadCount,
     required this.replyPort,
   });
 
+  /// The path to the model file.
   final String modelFilePath;
+
+  /// The number of CPU threads to use.
   final int cpuThreadCount;
+
+  /// The port to send replies to.
   final SendPort replyPort;
 }
 
 /// A request sent to the worker isolate.
 @visibleForTesting
 class InferenceRequest {
+  /// Creates an [InferenceRequest].
   InferenceRequest(this.audioData);
 
+  /// The audio data to inference on.
   final TransferableTypedData audioData;
 }
 
@@ -95,7 +103,8 @@ class SmartTurnIsolate {
   /// Entry point for the background isolate.
   static Future<void> _isolateEntry(IsolateConfig config) async {
     final commandPort = ReceivePort();
-    // We do NOT send the port here anymore. runIsolateLoop will signal when ready.
+    // We do NOT send the port here anymore. runIsolateLoop will signal when
+    // ready.
 
     final session = SmartTurnOnnxSession();
     await runIsolateLoop(

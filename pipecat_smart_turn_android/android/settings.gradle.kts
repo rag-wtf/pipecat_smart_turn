@@ -1,3 +1,11 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 rootProject.name = 'pipecat_smart_turn_android'
 
 plugins {

@@ -23,7 +23,8 @@ void main() {
       expect(
         result.toString(),
         equals(
-          'SmartTurnResult(isComplete: true, confidence: 0.988, latency: 123ms)',
+          'SmartTurnResult(isComplete: true, '
+          'confidence: 0.988, latency: 123ms)',
         ),
       );
     });

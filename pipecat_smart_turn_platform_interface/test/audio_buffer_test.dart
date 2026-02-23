@@ -68,24 +68,23 @@ void main() {
     });
 
     test('append with empty samples does nothing', () {
-      final buffer = AudioBuffer(maxSeconds: 1);
-      buffer.append(Float32List(0));
+      final buffer = AudioBuffer(maxSeconds: 1)..append(Float32List(0));
       expect(buffer.length, equals(0));
     });
 
     test('append wraps around correctly (exact fit)', () {
-      final buffer = AudioBuffer(maxSeconds: 0.1); // 1600 samples
-      // Fill buffer completely
-      buffer.append(Float32List(1600)..fillRange(0, 1600, 1));
-      // Append more data, exactly fitting remaining space if any (here full rewrite)
-      // Actually let's do partial fill first
-      buffer.clear();
-
-      // buffer size 1600.
-      // Fill 1500.
-      buffer.append(Float32List(1500)..fillRange(0, 1500, 1));
-      // Append 100. Should fit exactly at the end.
-      buffer.append(Float32List(100)..fillRange(0, 100, 2));
+      final buffer =
+          AudioBuffer(maxSeconds: 0.1) // 1600 samples
+            // Fill buffer completely
+            ..append(Float32List(1600)..fillRange(0, 1600, 1))
+            // Append more data, exactly fitting remaining space if any.
+            // Actually let's do partial fill first
+            ..clear()
+            // buffer size 1600.
+            // Fill 1500.
+            ..append(Float32List(1500)..fillRange(0, 1500, 1))
+            // Append 100. Should fit exactly at the end.
+            ..append(Float32List(100)..fillRange(0, 100, 2));
 
       expect(buffer.length, 1600);
       final output = buffer.toFloat32List();
@@ -96,11 +95,12 @@ void main() {
     });
 
     test('append wraps around correctly (overflow)', () {
-      final buffer = AudioBuffer(maxSeconds: 0.1); // 1600 samples
-      // Fill 1500.
-      buffer.append(Float32List(1500)..fillRange(0, 1500, 1));
-      // Append 200. Should wrap around by 100.
-      buffer.append(Float32List(200)..fillRange(0, 200, 2));
+      final buffer =
+          AudioBuffer(maxSeconds: 0.1) // 1600 samples
+            // Fill 1500.
+            ..append(Float32List(1500)..fillRange(0, 1500, 1))
+            // Append 200. Should wrap around by 100.
+            ..append(Float32List(200)..fillRange(0, 200, 2));
 
       expect(buffer.length, 1600);
       final output = buffer.toFloat32List();
