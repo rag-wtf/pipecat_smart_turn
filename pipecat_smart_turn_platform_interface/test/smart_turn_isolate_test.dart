@@ -16,7 +16,10 @@ class MockSmartTurnOnnxSession implements SmartTurnOnnxSession {
   bool shouldFailRun = false;
 
   @override
-  Future<void> initialize({required String modelFilePath, int cpuThreadCount = 1}) async {
+  Future<void> initialize({
+    required String modelFilePath,
+    int cpuThreadCount = 1,
+  }) async {
     if (shouldFailInit) throw Exception('Init failed');
     initializeCalled = true;
     initializedModelPath = modelFilePath;
@@ -37,13 +40,16 @@ class MockSmartTurnOnnxSession implements SmartTurnOnnxSession {
 
 void main() {
   group('SmartTurnIsolate', () {
-    test('predict throws SmartTurnNotInitializedException if not spawned', () async {
-      final isolate = SmartTurnIsolate();
-      expect(
-        () => isolate.predict(Float32List(128000)),
-        throwsA(isA<SmartTurnNotInitializedException>()),
-      );
-    });
+    test(
+      'predict throws SmartTurnNotInitializedException if not spawned',
+      () async {
+        final isolate = SmartTurnIsolate();
+        expect(
+          () => isolate.predict(Float32List(128000)),
+          throwsA(isA<SmartTurnNotInitializedException>()),
+        );
+      },
+    );
 
     test('kill handles null isolate gracefully', () {
       final isolate = SmartTurnIsolate();
@@ -132,7 +138,9 @@ void main() {
       await Future.delayed(Duration.zero);
 
       final replyPort = ReceivePort();
-      final request = InferenceRequest(TransferableTypedData.fromList([Float32List(100)]));
+      final request = InferenceRequest(
+        TransferableTypedData.fromList([Float32List(100)]),
+      );
 
       commandController.add((request, replyPort.sendPort));
 
@@ -159,7 +167,9 @@ void main() {
       await Future.delayed(Duration.zero);
 
       final replyPort = ReceivePort();
-      final request = InferenceRequest(TransferableTypedData.fromList([Float32List(100)]));
+      final request = InferenceRequest(
+        TransferableTypedData.fromList([Float32List(100)]),
+      );
 
       commandController.add((request, replyPort.sendPort));
 

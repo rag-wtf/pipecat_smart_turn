@@ -12,11 +12,11 @@ void main() {
     test('getPlatformName', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        channel,
-        (methodCall) async {
-          return '42';
-        },
-      );
+            channel,
+            (methodCall) async {
+              return '42';
+            },
+          );
 
       expect(await platform.getPlatformName(), '42');
     });

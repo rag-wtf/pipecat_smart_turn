@@ -13,7 +13,10 @@ class MockSmartTurnOnnxSession implements SmartTurnOnnxSession {
   int? initializedCpuThreadCount;
 
   @override
-  Future<void> initialize({required String modelFilePath, int cpuThreadCount = 1}) async {
+  Future<void> initialize({
+    required String modelFilePath,
+    int cpuThreadCount = 1,
+  }) async {
     initializeCalled = true;
     initializedModelPath = modelFilePath;
     initializedCpuThreadCount = cpuThreadCount;
@@ -43,7 +46,10 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
   int? spawnedCpuThreadCount;
 
   @override
-  Future<void> spawn({required String modelFilePath, int cpuThreadCount = 1}) async {
+  Future<void> spawn({
+    required String modelFilePath,
+    int cpuThreadCount = 1,
+  }) async {
     spawnCalled = true;
     spawnedModelPath = modelFilePath;
     spawnedCpuThreadCount = cpuThreadCount;
@@ -51,7 +57,7 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
 
   @override
   Future<(double, double)> predict(Float32List audio) async {
-      return predictResult;
+    return predictResult;
   }
 
   (double, double) predictResult = (5.0, 0.0);
@@ -123,8 +129,11 @@ void main() {
     });
 
     test('initialize is idempotent', () async {
-       detector = SmartTurnDetector(
-        config: const SmartTurnConfig(customModelPath: 'model.onnx', useIsolate: false),
+      detector = SmartTurnDetector(
+        config: const SmartTurnConfig(
+          customModelPath: 'model.onnx',
+          useIsolate: false,
+        ),
       );
       detector.sessionOverride = mockSession;
       await detector.initialize();
@@ -148,7 +157,9 @@ void main() {
     test('predict uses session when useIsolate is false', () async {
       detector = SmartTurnDetector(
         config: const SmartTurnConfig(
-            customModelPath: 'model.onnx', useIsolate: false),
+          customModelPath: 'model.onnx',
+          useIsolate: false,
+        ),
       );
       detector.sessionOverride = mockSession;
       await detector.initialize();
@@ -163,8 +174,7 @@ void main() {
 
     test('predict uses isolate when useIsolate is true', () async {
       detector = SmartTurnDetector(
-        config: const SmartTurnConfig(
-            customModelPath: 'model.onnx'),
+        config: const SmartTurnConfig(customModelPath: 'model.onnx'),
       );
       detector.isolateOverride = mockIsolate;
       await detector.initialize();
@@ -180,7 +190,9 @@ void main() {
     test('dispose clears resources', () async {
       detector = SmartTurnDetector(
         config: const SmartTurnConfig(
-            customModelPath: 'model.onnx', useIsolate: false),
+          customModelPath: 'model.onnx',
+          useIsolate: false,
+        ),
       );
       detector.sessionOverride = mockSession;
       await detector.initialize();
@@ -191,8 +203,7 @@ void main() {
 
     test('dispose clears isolate resources', () async {
       detector = SmartTurnDetector(
-        config: const SmartTurnConfig(
-            customModelPath: 'model.onnx'),
+        config: const SmartTurnConfig(customModelPath: 'model.onnx'),
       );
       detector.isolateOverride = mockIsolate;
       await detector.initialize();
@@ -210,7 +221,9 @@ void main() {
       final slowSession = SlowMockSession(completer);
       detector = SmartTurnDetector(
         config: const SmartTurnConfig(
-            customModelPath: 'model.onnx', useIsolate: false),
+          customModelPath: 'model.onnx',
+          useIsolate: false,
+        ),
       );
       detector.sessionOverride = slowSession;
       await detector.initialize();

@@ -51,11 +51,7 @@ void main() {
       // Little Endian: 0x00, 0x80 -> -32768
       // 0x00, 0x00 -> 0
       // 0xFF, 0x7F -> 32767
-      final input = Uint8List.fromList([
-        0x00, 0x80,
-        0x00, 0x00,
-        0xFF, 0x7F
-      ]);
+      final input = Uint8List.fromList([0x00, 0x80, 0x00, 0x00, 0xFF, 0x7F]);
       final output = AudioPreprocessor.bytesToFloat32(input);
       expect(output.length, 3);
       expect(output[0], equals(-1.0));
@@ -80,7 +76,7 @@ void main() {
       final input = Float32List.fromList([
         1.0, 2.0, 3.0, // Should take 1.0
         4.0, 5.0, 6.0, // Should take 4.0
-        7.0, 8.0, 9.0  // Should take 7.0
+        7.0, 8.0, 9.0, // Should take 7.0
       ]);
       final output = AudioPreprocessor.resample48To16(input);
       expect(output.length, 3);

@@ -12,12 +12,15 @@ void main() {
       session = SmartTurnOnnxSession();
     });
 
-    test('run throws SmartTurnNotInitializedException if not initialized', () async {
-      expect(
-        () => session.run(Float32List(128000)),
-        throwsA(isA<SmartTurnNotInitializedException>()),
-      );
-    });
+    test(
+      'run throws SmartTurnNotInitializedException if not initialized',
+      () async {
+        expect(
+          () => session.run(Float32List(128000)),
+          throwsA(isA<SmartTurnNotInitializedException>()),
+        );
+      },
+    );
 
     // We can't easily test success case without a valid model and ONNX runtime.
     // But we can test failure to load model if we provide invalid path.
@@ -25,14 +28,14 @@ void main() {
     // If it fails, it throws SmartTurnModelLoadException.
 
     test('initialize throws SmartTurnModelLoadException on failure', () async {
-       // This test might fail if OrtEnv.init() crashes or if it succeeds but file load fails.
-       // We expect SmartTurnModelLoadException.
-       try {
-         await session.initialize(modelFilePath: 'non_existent_file.onnx');
-         fail('Should have thrown SmartTurnModelLoadException');
-       } catch (e) {
-         expect(e, isA<SmartTurnModelLoadException>());
-       }
+      // This test might fail if OrtEnv.init() crashes or if it succeeds but file load fails.
+      // We expect SmartTurnModelLoadException.
+      try {
+        await session.initialize(modelFilePath: 'non_existent_file.onnx');
+        fail('Should have thrown SmartTurnModelLoadException');
+      } catch (e) {
+        expect(e, isA<SmartTurnModelLoadException>());
+      }
     });
   });
 }

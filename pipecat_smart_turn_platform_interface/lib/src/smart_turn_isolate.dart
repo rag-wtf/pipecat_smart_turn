@@ -56,9 +56,9 @@ class SmartTurnIsolate {
           _initCompleter.complete();
         }
       } else if (message is Exception) {
-         if (!_initCompleter.isCompleted) {
-            _initCompleter.completeError(message);
-         }
+        if (!_initCompleter.isCompleted) {
+          _initCompleter.completeError(message);
+        }
       }
     });
 
