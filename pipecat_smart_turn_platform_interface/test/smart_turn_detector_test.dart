@@ -100,7 +100,6 @@ void main() {
       detector = SmartTurnDetector(
         config: const SmartTurnConfig(
           customModelPath: 'model.onnx',
-          useIsolate: true,
           cpuThreadCount: 4,
         ),
       );
@@ -115,7 +114,7 @@ void main() {
 
     test('throws if initialized without customModelPath', () {
       detector = SmartTurnDetector(
-        config: const SmartTurnConfig(customModelPath: null),
+        config: const SmartTurnConfig(),
       );
       expect(
         () => detector.initialize(),
@@ -154,7 +153,7 @@ void main() {
       detector.sessionOverride = mockSession;
       await detector.initialize();
 
-      mockSession.setRunResult(0.0, 10.0); // High confidence for complete
+      mockSession.setRunResult(0, 10); // High confidence for complete
       final result = await detector.predict(Float32List(16000));
 
       expect(result, isNotNull);
@@ -165,12 +164,12 @@ void main() {
     test('predict uses isolate when useIsolate is true', () async {
       detector = SmartTurnDetector(
         config: const SmartTurnConfig(
-            customModelPath: 'model.onnx', useIsolate: true),
+            customModelPath: 'model.onnx'),
       );
       detector.isolateOverride = mockIsolate;
       await detector.initialize();
 
-      mockIsolate.setPredictResult(10.0, 0.0); // High confidence for incomplete
+      mockIsolate.setPredictResult(10, 0); // High confidence for incomplete
       final result = await detector.predict(Float32List(16000));
 
       expect(result, isNotNull);
@@ -193,7 +192,7 @@ void main() {
     test('dispose clears isolate resources', () async {
       detector = SmartTurnDetector(
         config: const SmartTurnConfig(
-            customModelPath: 'model.onnx', useIsolate: true),
+            customModelPath: 'model.onnx'),
       );
       detector.isolateOverride = mockIsolate;
       await detector.initialize();
@@ -232,8 +231,8 @@ void main() {
 }
 
 class SlowMockSession extends MockSmartTurnOnnxSession {
-  final Completer<(double, double)> completer;
   SlowMockSession(this.completer);
+  final Completer<(double, double)> completer;
 
   @override
   Future<(double, double)> run(Float32List audioSamples) {

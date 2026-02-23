@@ -69,7 +69,7 @@ void main() {
     });
 
     test('initializes session and calls onInitialized', () async {
-      bool onInitializedCalled = false;
+      var onInitializedCalled = false;
 
       final loopFuture = SmartTurnIsolate.runIsolateLoop(
         commandStream: commandController.stream,
@@ -97,7 +97,7 @@ void main() {
 
     test('sends error if initialization fails', () async {
       mockSession.shouldFailInit = true;
-      bool onInitializedCalled = false;
+      var onInitializedCalled = false;
 
       final loopFuture = SmartTurnIsolate.runIsolateLoop(
         commandStream: commandController.stream,

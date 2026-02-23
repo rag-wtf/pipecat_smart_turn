@@ -39,7 +39,7 @@ void main() {
       // Actually PipecatSmartTurnPlatform itself is abstract but we can extend it
       final platform = ExtendsPipecatSmartTurnPlatform();
       expect(
-        () => platform.getPlatformName(),
+        platform.getPlatformName,
         throwsA(isA<UnimplementedError>()),
       );
     });
