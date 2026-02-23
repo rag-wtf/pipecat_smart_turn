@@ -30,7 +30,8 @@ class SmartTurnConfig {
   final double maxAudioSeconds;
 
   /// Absolute path to the Smart Turn ONNX model file.
-  /// **Required** before calling `initialize()`.
+  /// If `null` (default), the package will automatically extract and use
+  /// the bundled `smart-turn-v3.2-cpu.onnx` model from the package assets.
   final String? customModelPath;
 
   /// Number of CPU threads to use for ONNX inference.

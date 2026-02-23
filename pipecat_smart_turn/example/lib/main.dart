@@ -38,21 +38,13 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   }
 
   Future<void> _initDetector() async {
-    // In a real app, you would download the model to the device
-    // and provide the absolute path here.
-    const modelPath = '/path/to/your/model.onnx'; // Placeholder
-
-    const config = SmartTurnConfig(
-      customModelPath: modelPath,
-    );
+    const config = SmartTurnConfig(); // Uses bundled model by default
 
     _detector = SmartTurnDetector(config: config);
+    await _detector!.initialize();
 
     setState(() {
-      _status =
-          'Model path: $modelPath\n'
-          '(Note: Model must be manually placed at this path for this '
-          'demo to run)';
+      _status = 'Bundled model loaded successfully. Ready for inference.';
     });
   }
 
