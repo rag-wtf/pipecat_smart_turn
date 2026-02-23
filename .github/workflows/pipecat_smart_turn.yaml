@@ -33,7 +33,9 @@ jobs:
       working_directory: pipecat_smart_turn
 
   pana:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/pana.yml@v1
+    uses: ./.github/workflows/pana.yaml
+    with:
+      working_directory: pipecat_smart_turn
 
 
   android:
