@@ -26,11 +26,16 @@ void main() {
     });
 
     test('instance can be overridden', () {
-      PipecatSmartTurnPlatform.instance = PipecatSmartTurnPlatformMock();
-      expect(
-        PipecatSmartTurnPlatform.instance,
-        isA<PipecatSmartTurnPlatformMock>(),
-      );
+      final initialInstance = PipecatSmartTurnPlatform.instance;
+      try {
+        PipecatSmartTurnPlatform.instance = PipecatSmartTurnPlatformMock();
+        expect(
+          PipecatSmartTurnPlatform.instance,
+          isA<PipecatSmartTurnPlatformMock>(),
+        );
+      } finally {
+        PipecatSmartTurnPlatform.instance = initialInstance;
+      }
     });
 
     test('getPlatformName throws UnimplementedError by default', () async {
