@@ -1,7 +1,13 @@
+// Ignore dynamic calls because types from deferred libraries are unavailable
+// for early type-hinting.
+// ignore_for_file: avoid_dynamic_calls
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:pipecat_smart_turn/pipecat_smart_turn.dart';
+
+// 1. Deferred Loading: Download the ML pipeline only when needed.
+import 'package:pipecat_smart_turn/pipecat_smart_turn.dart'
+    deferred as smart_turn;
 
 void main() {
   runApp(const MyApp());
@@ -27,9 +33,13 @@ class SmartTurnDemo extends StatefulWidget {
 }
 
 class _SmartTurnDemoState extends State<SmartTurnDemo> {
-  SmartTurnDetector? _detector;
-  SmartTurnResult? _lastResult;
+  // Using dynamic since types from deferred libraries cannot be used
+  // as annotations
+  dynamic _detector;
+  dynamic _lastResult;
   String _status = 'Initializing...';
+
+  StreamSubscription<Float32List>? _audioSub;
 
   @override
   void initState() {
@@ -38,19 +48,19 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   }
 
   Future<void> _initDetector() async {
-    const config = SmartTurnConfig(); // Uses bundled model by default
+    setState(() => _status = 'Downloading inference engine...');
 
     try {
-      _detector = SmartTurnDetector(config: config);
-      await _detector!.initialize();
+      // Execute deferred loading here before instantiating ONNX components
+      await smart_turn.loadLibrary();
 
-      setState(() {
-        _status = 'Bundled model loaded successfully. Ready for inference.';
-      });
-    } on SmartTurnException catch (e) {
+      final config = smart_turn.SmartTurnConfig();
+      _detector = smart_turn.SmartTurnDetector(config: config);
+      await _detector.initialize();
+
       if (!mounted) return;
       setState(() {
-        _status = e.message;
+        _status = 'Bundled model loaded successfully. Ready for stream.';
       });
     } on Exception catch (e) {
       if (!mounted) return;
@@ -60,42 +70,71 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
     }
   }
 
-  Future<void> _simulateInference() async {
+  Future<void> _simulateStreamInference() async {
     if (_detector == null) return;
 
+    // Setup for Stream Optimization
     setState(() {
       _lastResult = null;
-      _status = 'Simulating inference...';
+      _status = 'Streaming simulated audio...';
     });
 
-    try {
-      // Create 8 seconds of dummy audio (128,000 samples)
-      final dummyAudio = Float32List(128000);
+    await _audioSub?.cancel();
 
-      // Perform prediction
-      final result = await _detector!.predict(dummyAudio);
+    // 3. Stream Optimization: emit audio chunks periodically
+    // instead of one massive block
+    final chunkStream = Stream.periodic(const Duration(milliseconds: 500), (
+      count,
+    ) {
+      // Simulate roughly 500ms of audio (8000 samples at 16kHz)
+      return Float32List(8000);
+    }).take(16); // Run for 8 seconds total (16 * 500ms)
 
-      setState(() {
-        _lastResult = result;
-        _status = result == null
-            ? 'Inference skipped (backpressure)'
-            : 'Inference complete';
-      });
-    } on Exception catch (e) {
-      setState(() => _status = 'Error: $e');
-    }
+    _audioSub = chunkStream.listen((chunk) async {
+      // 2. Chunked Execution: Yield to the event loop before heavy tasks
+      // to prevent UI jank
+      await Future<void>.delayed(Duration.zero);
+
+      try {
+        final result = await _detector.predict(chunk);
+        if (result != null && mounted) {
+          setState(() {
+            _lastResult = result;
+            if (result.isComplete as bool) {
+              _status = 'User finished turn!';
+            } else {
+              _status = 'User is speaking...';
+            }
+          });
+        }
+      } on Exception catch (e) {
+        if (mounted) {
+          setState(() => _status = 'Error: $e');
+        }
+      }
+    });
+
+    _audioSub?.onDone(() {
+      if (mounted && _status == 'Streaming simulated audio...') {
+        setState(() => _status = 'Stream naturally finished.');
+      }
+    });
   }
 
   @override
   void dispose() {
-    unawaited(_detector?.dispose());
+    unawaited(_audioSub?.cancel());
+    final d = _detector;
+    if (d != null) {
+      unawaited(d.dispose() as Future<void>);
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Smart Turn Demo')),
+      appBar: AppBar(title: const Text('Smart Turn Web Demo')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -110,29 +149,35 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
             const Divider(height: 48),
             if (_lastResult != null) ...[
               const Text(
-                'Last Result:',
+                'Incremental Stream Result:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               _ResultRow(
                 'Is Complete:',
-                _lastResult!.isComplete ? 'YES' : 'NO',
-                color: _lastResult!.isComplete ? Colors.green : Colors.orange,
+                (_lastResult!.isComplete as bool) ? 'YES' : 'NO',
+                color: (_lastResult!.isComplete as bool)
+                    ? Colors.green
+                    : Colors.orange,
               ),
               _ResultRow(
                 'Confidence:',
                 '${(_lastResult!.confidence * 100).toStringAsFixed(1)}%',
               ),
-              _ResultRow('Latency:', '${_lastResult!.latencyMs}ms'),
-              _ResultRow('Audio length:', '${_lastResult!.audioLengthMs}ms'),
+              _ResultRow('Latency (Per chunk):', '${_lastResult!.latencyMs}ms'),
             ] else
-              const Center(child: Text('No inference results yet.')),
+              const Center(child: Text('No stream data yet.')),
             const Spacer(),
             Center(
               child: ElevatedButton.icon(
-                onPressed: _simulateInference,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Simulate Inference (Full Buffer)'),
+                onPressed:
+                    _status.contains('Ready') ||
+                        _status.contains('finished') ||
+                        _status.contains('User')
+                    ? _simulateStreamInference
+                    : null,
+                icon: const Icon(Icons.stream),
+                label: const Text('Start Audio Stream'),
               ),
             ),
           ],

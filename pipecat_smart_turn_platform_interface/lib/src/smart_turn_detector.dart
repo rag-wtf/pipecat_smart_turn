@@ -46,37 +46,37 @@ class SmartTurnDetector {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    if (kIsWeb) {
-      throw const SmartTurnUnsupportedPlatformException(
-        'SmartTurnDetector is not supported on the web.',
-      );
-    }
-
     var modelPath = config.customModelPath ?? '';
 
     if (modelPath.isEmpty) {
-      try {
-        final dir = await getApplicationSupportDirectory();
-        final file = File('${dir.path}/smart-turn-v3.2-cpu.onnx');
-        modelPath = file.path;
+      if (kIsWeb) {
+        modelPath =
+            'assets/packages/pipecat_smart_turn_platform_interface/assets/smart-turn-v3.2-cpu.onnx';
+      } else {
+        try {
+          final dir = await getApplicationSupportDirectory();
+          final file = File('${dir.path}/smart-turn-v3.2-cpu.onnx');
+          modelPath = file.path;
 
-        // Extract if it doesn't exist to save I/O over-writes on hot restarts.
-        if (!file.existsSync()) {
-          final byteData = await rootBundle.load(
-            'packages/pipecat_smart_turn_platform_interface/assets/smart-turn-v3.2-cpu.onnx',
-          );
-          await file.writeAsBytes(
-            byteData.buffer.asUint8List(
-              byteData.offsetInBytes,
-              byteData.lengthInBytes,
-            ),
+          // Extract if it doesn't exist to save I/O over-writes on hot restarts.
+          if (!file.existsSync()) {
+            final byteData = await rootBundle.load(
+              'packages/pipecat_smart_turn_platform_interface/assets/smart-turn-v3.2-cpu.onnx',
+            );
+            await file.writeAsBytes(
+              byteData.buffer.asUint8List(
+                byteData.offsetInBytes,
+                byteData.lengthInBytes,
+              ),
+            );
+          }
+        } catch (e) {
+          throw SmartTurnModelLoadException(
+            'Failed to extract bundled ONNX model from assets. '
+            'Verify the asset exists in pubspec.yaml or provide '
+            'a customModelPath. Error: $e',
           );
         }
-      } catch (e) {
-        throw SmartTurnModelLoadException(
-          'Failed to extract bundled ONNX model from assets. Verify the asset '
-          'exists in pubspec.yaml or provide a customModelPath. Error: $e',
-        );
       }
     }
 
