@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:meta/meta.dart';
 import 'package:path_provider/path_provider.dart';
@@ -44,6 +45,12 @@ class SmartTurnDetector {
   /// Thrown when the model file cannot be loaded or extracted.
   Future<void> initialize() async {
     if (_isInitialized) return;
+
+    if (kIsWeb) {
+      throw const SmartTurnUnsupportedPlatformException(
+        'SmartTurnDetector is not supported on the web.',
+      );
+    }
 
     var modelPath = config.customModelPath ?? '';
 

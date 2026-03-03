@@ -40,12 +40,24 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   Future<void> _initDetector() async {
     const config = SmartTurnConfig(); // Uses bundled model by default
 
-    _detector = SmartTurnDetector(config: config);
-    await _detector!.initialize();
+    try {
+      _detector = SmartTurnDetector(config: config);
+      await _detector!.initialize();
 
-    setState(() {
-      _status = 'Bundled model loaded successfully. Ready for inference.';
-    });
+      setState(() {
+        _status = 'Bundled model loaded successfully. Ready for inference.';
+      });
+    } on SmartTurnException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _status = e.message;
+      });
+    } on Exception catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _status = 'Initialization error: $e';
+      });
+    }
   }
 
   Future<void> _simulateInference() async {
