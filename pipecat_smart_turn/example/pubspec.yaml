@@ -24,6 +24,7 @@ dependencies:
     path: ../../pipecat_smart_turn_linux
   pipecat_smart_turn_windows:
     path: ../../pipecat_smart_turn_windows
+  record: ^6.2.0
 
 dev_dependencies:
   flutter_driver:

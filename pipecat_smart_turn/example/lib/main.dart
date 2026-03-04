@@ -3,11 +3,12 @@
 // ignore_for_file: avoid_dynamic_calls
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
 // 1. Deferred Loading: Download the ML pipeline only when needed.
 import 'package:pipecat_smart_turn/pipecat_smart_turn.dart'
     deferred as smart_turn;
+import 'package:record/record.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,6 +41,11 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   String _status = 'Initializing...';
 
   StreamSubscription<Float32List>? _audioSub;
+  StreamSubscription<Uint8List>? _micSub;
+  final _audioRecorder = AudioRecorder();
+  // Using dynamic for deferred library types
+  dynamic _audioBuffer;
+  bool _isRecording = false;
 
   @override
   void initState() {
@@ -57,6 +63,9 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
       final config = smart_turn.SmartTurnConfig();
       _detector = smart_turn.SmartTurnDetector(config: config);
       await _detector.initialize();
+      _audioBuffer = smart_turn.AudioBuffer(
+        maxSeconds: config.maxAudioSeconds,
+      );
 
       if (!mounted) return;
       setState(() {
@@ -66,6 +75,97 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
       if (!mounted) return;
       setState(() {
         _status = 'Initialization error: $e';
+      });
+    }
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      await _stopRecording();
+    } else {
+      await _startRecording();
+    }
+  }
+
+  Future<void> _startRecording() async {
+    if (_detector == null) return;
+
+    if (await _audioRecorder.hasPermission()) {
+      _audioBuffer?.clear();
+
+      setState(() {
+        _isRecording = true;
+        _lastResult = null;
+        _status = 'Listening to microphone...';
+      });
+
+      final stream = await _audioRecorder.startStream(
+        const RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+      );
+
+      _micSub = stream.listen((data) async {
+        // Yield to the event loop before heavy tasks
+        await Future<void>.delayed(Duration.zero);
+
+        try {
+          // Convert 16-bit PCM (little endian) to Float32List (-1.0 to 1.0)
+          final float32List = Float32List(data.length ~/ 2);
+          final byteData = ByteData.sublistView(data);
+          for (var i = 0; i < float32List.length; i++) {
+            final pcm16 = byteData.getInt16(i * 2, Endian.little);
+            float32List[i] = pcm16 / 32768.0;
+          }
+
+          _audioBuffer?.append(float32List);
+          final fullContextList = _audioBuffer?.toFloat32List() as Float32List?;
+          if (fullContextList == null || fullContextList.isEmpty) return;
+
+          final result = await _detector.predict(fullContextList);
+          if (result != null && mounted) {
+            setState(() {
+              _lastResult = result;
+              if (result.isComplete as bool) {
+                _status = 'User finished turn!';
+                _audioBuffer?.clear();
+              } else {
+                _status = 'User is speaking...';
+              }
+            });
+          }
+        } on Exception catch (e) {
+          if (mounted) {
+            setState(() => _status = 'Error: $e');
+          }
+        }
+      });
+      _micSub?.onError((Object error) {
+        if (mounted) {
+          setState(() => _status = 'Recording error: $error');
+        }
+      });
+    } else {
+      if (mounted) {
+        setState(() => _status = 'Microphone permission denied.');
+      }
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    await _micSub?.cancel();
+    _micSub = null;
+    _audioBuffer?.clear();
+    await _audioRecorder.stop();
+    if (mounted) {
+      setState(() {
+        _isRecording = false;
+        if (_status == 'Listening to microphone...' ||
+            _status == 'User is speaking...') {
+          _status = 'Recording stopped.';
+        }
       });
     }
   }
@@ -124,6 +224,8 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   @override
   void dispose() {
     unawaited(_audioSub?.cancel());
+    unawaited(_micSub?.cancel());
+    unawaited(_audioRecorder.dispose());
     final d = _detector;
     if (d != null) {
       unawaited(d.dispose() as Future<void>);
@@ -175,17 +277,36 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
               ] else
                 const Center(child: Text('No stream data yet.')),
               const Spacer(),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed:
-                      _status.contains('Ready') ||
-                          _status.contains('finished') ||
-                          _status.contains('User')
-                      ? _simulateStreamInference
-                      : null,
-                  icon: const Icon(Icons.stream),
-                  label: const Text('Start Audio Stream'),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed:
+                        (_status.contains('Ready') ||
+                                _status.contains('finished') ||
+                                _status.contains('User') ||
+                                _status.contains('stopped') ||
+                                _status == 'Stream naturally finished.') &&
+                            !_isRecording
+                        ? () => unawaited(_simulateStreamInference())
+                        : null,
+                    icon: const Icon(Icons.science),
+                    label: const Text('Test'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed:
+                        _status.contains('Ready') ||
+                            _status.contains('finished') ||
+                            _status.contains('User') ||
+                            _status.contains('stopped') ||
+                            _status == 'Stream naturally finished.' ||
+                            _isRecording
+                        ? () => unawaited(_toggleRecording())
+                        : null,
+                    icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                    label: Text(_isRecording ? 'Stop' : 'Record'),
+                  ),
+                ],
               ),
             ],
           ),
