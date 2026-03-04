@@ -18,12 +18,12 @@ dependencies:
     path: ../
   # Platform implementations — required so Flutter's build tool discovers each
   # platform plugin and bundles its native libraries (e.g. libonnxruntime.so).
+  pipecat_smart_turn_android:
+    path: ../../pipecat_smart_turn_android
   pipecat_smart_turn_linux:
     path: ../../pipecat_smart_turn_linux
   pipecat_smart_turn_windows:
     path: ../../pipecat_smart_turn_windows
-  pipecat_smart_turn_android:
-    path: ../../pipecat_smart_turn_android
 
 dev_dependencies:
   flutter_driver:

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/mel_spectrogram.dart';
+import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_env.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_session.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_value.dart';
@@ -16,16 +17,23 @@ class SmartTurnOnnxSession {
   ///
   /// [modelFilePath] must be an absolute path to the .onnx file.
   /// [cpuThreadCount] recommendation is 1 for mobile.
+  /// [onnxLibraryPath] must be the absolute path to libonnxruntime resolved
+  /// in the main isolate via [resolveOnnxLibraryPath]. Ignored on platforms
+  /// that use [DynamicLibrary.process()] (iOS, macOS).
   Future<void> initialize({
     required String modelFilePath,
     int cpuThreadCount = 1,
+    String? onnxLibraryPath,
   }) async {
     if (_isInitialized) return;
 
     try {
-      // Initialize the global ONNX Runtime environment
       // coverage:ignore-start
-      OrtEnv.instance.init();
+      // Build the binding from the library path resolved in the main isolate.
+      final binding = openOnnxRuntimeBinding(onnxLibraryPath);
+
+      // Initialize (or reuse) the global ONNX Runtime environment.
+      OrtEnv.setup(binding).init();
 
       final sessionOptions = OrtSessionOptions()
         ..setInterOpNumThreads(cpuThreadCount)

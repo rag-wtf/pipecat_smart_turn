@@ -7,16 +7,25 @@ import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxru
 
 /// A class about onnx runtime environment.
 class OrtEnv {
-  /// Internal constructor for [OrtEnv].
-  OrtEnv._() {
-    _ortApiPtr = onnxRuntimeBinding.OrtGetApiBase().ref.GetApi
+  OrtEnv._(bg.OnnxRuntimeBindings binding) {
+    _binding = binding;
+    _ortApiPtr = _binding.OrtGetApiBase().ref.GetApi
         .asFunction<ffi.Pointer<bg.OrtApi> Function(int)>()(apiVersion.value);
   }
 
   /// The singleton instance of [OrtEnv].
-  static OrtEnv get instance => _instance;
+  static OrtEnv get instance {
+    assert(
+      _instance != null,
+      'OrtEnv has not been initialized. '
+      'Call OrtEnv.initialize(binding) before accessing OrtEnv.instance.',
+    );
+    return _instance!;
+  }
 
-  static final OrtEnv _instance = OrtEnv._();
+  static OrtEnv? _instance;
+
+  late bg.OnnxRuntimeBindings _binding;
 
   /// The API version of onnx runtime.
   static OrtApiVersion apiVersion = OrtApiVersion.api14;
@@ -24,6 +33,20 @@ class OrtEnv {
   ffi.Pointer<bg.OrtEnv>? _ptr;
 
   late ffi.Pointer<bg.OrtApi> _ortApiPtr;
+
+  /// Initializes (or re-uses) the [OrtEnv] singleton with the given [binding].
+  ///
+  /// [binding] is obtained via [openOnnxRuntimeBinding] using the library path
+  /// resolved in the main isolate before any [compute()] call.
+  /// Configures (or re-uses) the [OrtEnv] singleton with the given [binding].
+  ///
+  /// [binding] is obtained via [openOnnxRuntimeBinding] using the library path
+  /// resolved in the main isolate before any [compute()] call.
+  // ignore: prefer_constructors_over_static_methods
+  static OrtEnv setup(bg.OnnxRuntimeBindings binding) {
+    _instance ??= OrtEnv._(binding);
+    return _instance!;
+  }
 
   /// Initialize the onnx runtime environment.
   void init({
@@ -53,10 +76,12 @@ class OrtEnv {
     _ortApiPtr.ref.ReleaseEnv
         .asFunction<void Function(ffi.Pointer<bg.OrtEnv>)>()(_ptr!);
     _ptr = null;
+    _instance = null;
   }
 
   /// Gets the version of onnx runtime.
-  static String get version => onnxRuntimeBinding.OrtGetApiBase()
+  static String get version => _instance!._binding
+      .OrtGetApiBase()
       .ref
       .GetVersionString
       .asFunction<ffi.Pointer<ffi.Char> Function()>()()

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/onnx_inference.dart';
+import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart';
 
 /// Configuration passed to the background compute function.
 @visibleForTesting
@@ -12,6 +13,7 @@ class IsolateConfig {
     required this.modelFilePath,
     required this.cpuThreadCount,
     required this.audioData,
+    this.onnxLibraryPath,
   });
 
   /// The path to the model file.
@@ -22,6 +24,15 @@ class IsolateConfig {
 
   /// The audio data to inference on.
   final Float32List audioData;
+
+  /// The absolute path to the ONNX Runtime shared library.
+  ///
+  /// Must be resolved in the **main isolate** via `resolveOnnxLibraryPath()`
+  /// (from `bindings.dart`) before [compute()] is called, because
+  /// `Platform.resolvedExecutable` returns the wrong path inside a spawned
+  /// isolate. Null on platforms where path resolution is not needed
+  /// (iOS, macOS).
+  final String? onnxLibraryPath;
 }
 
 /// Executes inference using the ONNX backend.
@@ -32,6 +43,7 @@ Future<(double, double)> _runInference(IsolateConfig config) async {
     await session.initialize(
       modelFilePath: config.modelFilePath,
       cpuThreadCount: config.cpuThreadCount,
+      onnxLibraryPath: config.onnxLibraryPath,
     );
     final result = await session.run(config.audioData);
     return result;
@@ -48,6 +60,9 @@ class SmartTurnIsolate {
   String? _modelFilePath;
   int _cpuThreadCount = 1;
 
+  /// The library path resolved once in the main isolate.
+  String? _onnxLibraryPath;
+
   /// Initializes the parameters for subsequent inference calls.
   /// No heavy initialization is done here because [compute] spawns statelessly.
   Future<void> spawn({
@@ -56,6 +71,9 @@ class SmartTurnIsolate {
   }) async {
     _modelFilePath = modelFilePath;
     _cpuThreadCount = cpuThreadCount;
+    // Resolve the library path here, in the main isolate, where
+    // Platform.resolvedExecutable correctly points to the app bundle binary.
+    _onnxLibraryPath = resolveOnnxLibraryPath();
   }
 
   /// Sends audio to [compute] for inference and awaits logits.
@@ -69,6 +87,7 @@ class SmartTurnIsolate {
         modelFilePath: _modelFilePath!,
         cpuThreadCount: _cpuThreadCount,
         audioData: audio,
+        onnxLibraryPath: _onnxLibraryPath,
       );
 
       // On Web, this runs on the main thread.

@@ -6,6 +6,7 @@ class SmartTurnOnnxSession {
   Future<void> initialize({
     required String modelFilePath,
     int cpuThreadCount = 1,
+    String? onnxLibraryPath,
   }) async {
     throw UnsupportedError('SmartTurnOnnxSession is not supported on the web.');
   }

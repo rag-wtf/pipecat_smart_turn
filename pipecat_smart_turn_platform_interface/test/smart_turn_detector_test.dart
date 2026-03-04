@@ -16,6 +16,7 @@ class MockSmartTurnOnnxSession implements SmartTurnOnnxSession {
   Future<void> initialize({
     required String modelFilePath,
     int cpuThreadCount = 1,
+    String? onnxLibraryPath,
   }) async {
     initializeCalled = true;
     initializedModelPath = modelFilePath;
