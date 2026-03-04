@@ -159,23 +159,28 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
 
           // 2. Process Semantic Turn
           _audioBuffer?.append(float32List);
-          final fullContextList = _audioBuffer?.toFloat32List() as Float32List?;
-          if (fullContextList == null || fullContextList.isEmpty) return;
 
-          final result = await _detector.predict(fullContextList);
-          if (result != null && mounted) {
-            setState(() {
-              _lastResult = result;
-              if (result.isComplete as bool) {
-                _status = 'Turn Complete';
-                _audioBuffer?.clear();
-                _vad?.reset();
-              } else {
-                _status = 'Listening';
-              }
-            });
+          // Only predict if the VAD considers the user has paused speaking
+          if (vadStr == 'evaluatingSilence' || vadStr == 'silenceAfterSpeech') {
+            final fullContextList =
+                _audioBuffer?.toFloat32List() as Float32List?;
+            if (fullContextList == null || fullContextList.isEmpty) return;
+
+            final result = await _detector.predict(fullContextList);
+            if (result != null && mounted) {
+              setState(() {
+                _lastResult = result;
+                if (result.isComplete as bool) {
+                  _status = 'Turn Complete';
+                  _audioBuffer?.clear();
+                  _vad?.reset();
+                } else {
+                  _status = 'Listening';
+                }
+              });
+            }
           }
-        } on Exception catch (e) {
+        } on Object catch (e) {
           if (mounted) {
             setState(() => _status = 'Error: $e');
           }
@@ -233,21 +238,27 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
         final vadState = _vad?.process(chunk);
         final vadStr = vadState?.toString().split('.').last;
 
-        final result = await _detector.predict(chunk);
-        if (mounted) {
+        if (vadStr == 'evaluatingSilence' || vadStr == 'silenceAfterSpeech') {
+          final result = await _detector.predict(chunk);
+          if (mounted) {
+            setState(() {
+              _lastVadStateStr = vadStr;
+              if (result != null) _lastResult = result;
+
+              if (result != null && (result.isComplete as bool)) {
+                _status = 'Turn Complete';
+                _vad?.reset();
+              } else {
+                _status = 'Simulating Stream';
+              }
+            });
+          }
+        } else if (mounted) {
           setState(() {
             _lastVadStateStr = vadStr;
-            if (result != null) _lastResult = result;
-
-            if (result != null && (result.isComplete as bool)) {
-              _status = 'Turn Complete';
-              _vad?.reset();
-            } else {
-              _status = 'Simulating Stream';
-            }
           });
         }
-      } on Exception catch (e) {
+      } on Object catch (e) {
         if (mounted) {
           setState(() => _status = 'Error: $e');
         }
