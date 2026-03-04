@@ -21,7 +21,11 @@ class SmartTurnOnnxSession {
 
     try {
       ort.env.wasm.numThreads = cpuThreadCount;
-      _session = await ort.InferenceSession.create(modelFilePath.toJS).toDart;
+      final sessionOptions = createSessionOptions(executionProviders: ['wasm']);
+      _session = await ort.InferenceSession.create(
+        modelFilePath.toJS,
+        sessionOptions,
+      ).toDart;
       _isInitialized = true;
     } on Object catch (e) {
       throw SmartTurnModelLoadException(

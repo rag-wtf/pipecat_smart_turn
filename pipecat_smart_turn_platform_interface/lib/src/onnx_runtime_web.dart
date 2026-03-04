@@ -34,8 +34,26 @@ extension type WasmNamespace._(JSObject _) implements JSObject {
 }
 
 @JS()
+extension type SessionOptions._(JSObject _) implements JSObject {
+  external JSArray<JSString> get executionProviders;
+  external set executionProviders(JSArray<JSString> value);
+}
+
+/// Creates a [SessionOptions] object with the given [executionProviders].
+SessionOptions createSessionOptions({
+  List<String> executionProviders = const ['wasm'],
+}) {
+  final opts = <String, Object>{}.jsify()! as SessionOptions;
+  opts.executionProviders = executionProviders.map((e) => e.toJS).toList().toJS;
+  return opts;
+}
+
+@JS()
 extension type InferenceSessionConstructor._(JSObject _) implements JSObject {
-  external JSPromise<InferenceSession> create(JSAny modelData);
+  external JSPromise<InferenceSession> create(
+    JSAny modelData, [
+    SessionOptions? options,
+  ]);
 }
 
 @JS()
