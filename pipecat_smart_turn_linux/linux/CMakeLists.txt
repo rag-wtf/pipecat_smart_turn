@@ -19,3 +19,20 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
+
+# Bundle ONNX Runtime native libraries
+set(X64_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/x64/libonnxruntime.so.1.24.2")
+set(ARM64_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/arm64/libonnxruntime.so.1.24.2")
+
+set(BUNDLED_LIBS)
+if(EXISTS "${X64_LIB_PATH}")
+  list(APPEND BUNDLED_LIBS "${X64_LIB_PATH}")
+endif()
+if(EXISTS "${ARM64_LIB_PATH}")
+  list(APPEND BUNDLED_LIBS "${ARM64_LIB_PATH}")
+endif()
+
+set(pipecat_smart_turn_linux_bundled_libraries
+  ${BUNDLED_LIBS}
+  PARENT_SCOPE
+)

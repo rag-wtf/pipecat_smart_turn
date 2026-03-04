@@ -16,7 +16,18 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 
 # List of absolute paths to libraries that should be bundled with the plugin
+set(X64_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/x64/onnxruntime.dll")
+set(ARM64_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/arm64/onnxruntime.dll")
+
+set(BUNDLED_LIBS)
+if(EXISTS "${X64_LIB_PATH}")
+  list(APPEND BUNDLED_LIBS "${X64_LIB_PATH}")
+endif()
+if(EXISTS "${ARM64_LIB_PATH}")
+  list(APPEND BUNDLED_LIBS "${ARM64_LIB_PATH}")
+endif()
+
 set(pipecat_smart_turn_bundled_libraries
-  ""
+  ${BUNDLED_LIBS}
   PARENT_SCOPE
 )

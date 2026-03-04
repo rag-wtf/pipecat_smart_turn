@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:onnxruntime/onnxruntime.dart';
+
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
+import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_env.dart';
+import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_session.dart';
+import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_value.dart';
 
 /// Wraps the ONNX Runtime session for Smart Turn v3.
 class SmartTurnOnnxSession {
@@ -27,18 +30,18 @@ class SmartTurnOnnxSession {
         ..setInterOpNumThreads(cpuThreadCount)
         ..setIntraOpNumThreads(cpuThreadCount);
 
-      // Note: XNNPACK is not recommended for int8 quantized models (CPU only)
-      // but can be added via sessionOptions.appendXnnpackProvider() if needed.
-
-      _session = OrtSession.fromFile(
-        File(modelFilePath),
+      // Read file into bytes and load from buffer (avoids paths crossing
+      // isolate boundaries natively)
+      final modelBytes = File(modelFilePath).readAsBytesSync();
+      _session = OrtSession.fromBuffer(
+        modelBytes,
         sessionOptions,
       );
 
       sessionOptions.release();
       _isInitialized = true;
       // coverage:ignore-end
-    } catch (e) {
+    } on Object catch (e) {
       throw SmartTurnModelLoadException('Failed to load ONNX model: $e');
     }
   }
@@ -67,11 +70,12 @@ class SmartTurnOnnxSession {
       final outputs = _session!.run(runOptions, inputs);
 
       // Model outputs a single tensor named 'logits' with shape [1, 2]
-      final logits = outputs[0]?.value as List<List<double>>?;
-      if (logits == null) {
+      final logitsList = outputs[0]?.value as List?;
+      if (logitsList == null) {
         throw const SmartTurnInferenceException('Model returned null logits.');
       }
-      final result = (logits[0][0], logits[0][1]);
+      final logitsRow = logitsList[0] as List;
+      final result = (logitsRow[0] as double, logitsRow[1] as double);
 
       // Cleanup native resources
       inputTensor.release();
@@ -81,7 +85,7 @@ class SmartTurnOnnxSession {
       }
 
       return result;
-    } catch (e) {
+    } on Object catch (e) {
       throw SmartTurnInferenceException('ONNX inference failed: $e');
     }
     // coverage:ignore-end

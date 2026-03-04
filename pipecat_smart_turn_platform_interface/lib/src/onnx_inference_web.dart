@@ -23,7 +23,7 @@ class SmartTurnOnnxSession {
       ort.env.wasm.numThreads = cpuThreadCount;
       _session = await ort.InferenceSession.create(modelFilePath.toJS).toDart;
       _isInitialized = true;
-    } catch (e) {
+    } on Object catch (e) {
       throw SmartTurnModelLoadException(
         'Failed to load ONNX model via JS interop: $e',
       );
@@ -51,7 +51,7 @@ class SmartTurnOnnxSession {
       final logitsData = logitsTensor.data.toDart;
       final result = (logitsData[0], logitsData[1]);
       return result;
-    } catch (e) {
+    } on Object catch (e) {
       throw SmartTurnInferenceException('ONNX Web inference failed: $e');
     }
   }

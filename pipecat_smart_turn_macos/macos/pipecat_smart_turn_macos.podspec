@@ -14,6 +14,8 @@ Pod::Spec.new do |s|
   s.source           = { :path => '.' }
   s.source_files = 'pipecat_smart_turn_macos/Sources/**/*.swift'
   s.dependency 'FlutterMacOS'
+  s.dependency 'onnxruntime-objc', '1.24.2'
+  s.static_framework = true
   s.platform = :osx
   s.osx.deployment_target = '10.15'
   s.swift_version = '6.1'

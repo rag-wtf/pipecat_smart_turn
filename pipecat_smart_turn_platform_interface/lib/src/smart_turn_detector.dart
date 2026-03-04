@@ -70,7 +70,7 @@ class SmartTurnDetector {
               ),
             );
           }
-        } catch (e) {
+        } on Object catch (e) {
           throw SmartTurnModelLoadException(
             'Failed to extract bundled ONNX model from assets. '
             'Verify the asset exists in pubspec.yaml or provide '
