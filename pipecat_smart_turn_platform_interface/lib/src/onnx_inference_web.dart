@@ -53,7 +53,7 @@ class SmartTurnOnnxSession {
         inputShape,
       );
 
-      final feeds = {'input': inputTensor}.jsify()! as JSObject;
+      final feeds = {'input_features': inputTensor}.jsify()! as JSObject;
 
       final outputs = await _session!.run(feeds).toDart;
 
