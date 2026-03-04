@@ -100,7 +100,6 @@ class SmartTurnOnnxSession {
     } on Object catch (e) {
       throw SmartTurnInferenceException('ONNX inference failed: $e');
     }
-    // coverage:ignore-end
   }
 
   /// Releases ONNX Runtime session and environment resources.
