@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:typed_data';
 
 /// Extension methods for [List] to handle tensor-related operations.

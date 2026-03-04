@@ -16,7 +16,9 @@ import 'dart:typed_data';
 ///
 /// Uses a pure-Dart radix-2 in-place FFT (no Uint64List — Web-compatible).
 class MelSpectrogram {
+  // coverage:ignore-start
   MelSpectrogram._();
+  // coverage:ignore-end
 
   /// Sample rate of the input audio (Hz).
   static const int kSampleRate = 16000;
