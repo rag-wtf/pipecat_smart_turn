@@ -134,53 +134,61 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Smart Turn Web Demo')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'On-Device Semantic VAD',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(_status, style: const TextStyle(fontStyle: FontStyle.italic)),
-            const Divider(height: 48),
-            if (_lastResult != null) ...[
+      appBar: AppBar(title: const Text('Smart Turn Demo')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               const Text(
-                'Incremental Stream Result:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'On-Device Semantic VAD',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 8),
-              _ResultRow(
-                'Is Complete:',
-                (_lastResult!.isComplete as bool) ? 'YES' : 'NO',
-                color: (_lastResult!.isComplete as bool)
-                    ? Colors.green
-                    : Colors.orange,
+              const SizedBox(height: 16),
+              Text(
+                _status,
+                style: const TextStyle(fontStyle: FontStyle.italic),
               ),
-              _ResultRow(
-                'Confidence:',
-                '${(_lastResult!.confidence * 100).toStringAsFixed(1)}%',
+              const Divider(height: 48),
+              if (_lastResult != null) ...[
+                const Text(
+                  'Incremental Stream Result:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                _ResultRow(
+                  'Is Complete:',
+                  (_lastResult!.isComplete as bool) ? 'YES' : 'NO',
+                  color: (_lastResult!.isComplete as bool)
+                      ? Colors.green
+                      : Colors.orange,
+                ),
+                _ResultRow(
+                  'Confidence:',
+                  '${(_lastResult!.confidence * 100).toStringAsFixed(1)}%',
+                ),
+                _ResultRow(
+                  'Latency (Per chunk):',
+                  '${_lastResult!.latencyMs}ms',
+                ),
+              ] else
+                const Center(child: Text('No stream data yet.')),
+              const Spacer(),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed:
+                      _status.contains('Ready') ||
+                          _status.contains('finished') ||
+                          _status.contains('User')
+                      ? _simulateStreamInference
+                      : null,
+                  icon: const Icon(Icons.stream),
+                  label: const Text('Start Audio Stream'),
+                ),
               ),
-              _ResultRow('Latency (Per chunk):', '${_lastResult!.latencyMs}ms'),
-            ] else
-              const Center(child: Text('No stream data yet.')),
-            const Spacer(),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed:
-                    _status.contains('Ready') ||
-                        _status.contains('finished') ||
-                        _status.contains('User')
-                    ? _simulateStreamInference
-                    : null,
-                icon: const Icon(Icons.stream),
-                label: const Text('Start Audio Stream'),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
