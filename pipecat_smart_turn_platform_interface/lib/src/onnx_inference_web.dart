@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 import 'dart:typed_data';
 
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
@@ -43,7 +44,14 @@ class SmartTurnOnnxSession {
     try {
       final inputShape = [1.toJS, 128000.toJS].toJS;
       final jsData = audioSamples.toJS;
-      final inputTensor = ort.Tensor.create('float32', jsData, inputShape);
+      // Use callAsConstructor because `new ort.Tensor(type, data, dims)` is
+      // the correct API for typed-array tensors. `Tensor.create()` is an
+      // async image factory and does not accept (type, TypedArray, dims).
+      final inputTensor = (ort.Tensor as JSFunction).callAsConstructor<Tensor>(
+        'float32'.toJS,
+        jsData,
+        inputShape,
+      );
 
       final feeds = {'input': inputTensor}.jsify()! as JSObject;
 

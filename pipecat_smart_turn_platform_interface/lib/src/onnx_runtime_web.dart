@@ -57,13 +57,9 @@ extension type InferenceSessionConstructor._(JSObject _) implements JSObject {
 }
 
 @JS()
-extension type TensorConstructor._(JSObject _) implements JSObject {
-  external Tensor create(
-    String type,
-    JSFloat32Array data,
-    JSArray<JSNumber> dims,
-  );
-}
+// TensorConstructor is kept as an accessor so we can call `new ort.Tensor(…)`
+// via `(ort.Tensor as JSFunction).callAsConstructor<Tensor>(…)`.
+extension type TensorConstructor._(JSObject _) implements JSObject {}
 
 @JS()
 extension type InferenceSession._(JSObject _) implements JSObject {
