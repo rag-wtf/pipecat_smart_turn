@@ -20,5 +20,11 @@ void main() {
       const exception = SmartTurnInferenceException('inference failed');
       expect(exception.toString(), contains('inference failed'));
     });
+
+    test('SmartTurnUnsupportedPlatformException toString', () {
+      const exception = SmartTurnUnsupportedPlatformException('unsupported');
+      expect(exception.toString(), contains('unsupported'));
+      expect(exception.message, 'unsupported');
+    });
   });
 }

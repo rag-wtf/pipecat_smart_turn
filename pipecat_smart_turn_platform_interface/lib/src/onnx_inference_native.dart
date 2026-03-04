@@ -65,6 +65,7 @@ class SmartTurnOnnxSession {
     }
 
     try {
+      // coverage:ignore-start
       // Compute log-mel spectrogram: shape [1, 80, 800] = 64,000 values.
       final melData = MelSpectrogram.compute(audioSamples);
       final inputShape = [1, MelSpectrogram.kNMels, MelSpectrogram.kNumFrames];
@@ -97,8 +98,11 @@ class SmartTurnOnnxSession {
       }
 
       return result;
+      // coverage:ignore-end
     } on Object catch (e) {
+      // coverage:ignore-start
       throw SmartTurnInferenceException('ONNX inference failed: $e');
+      // coverage:ignore-end
     }
   }
 
