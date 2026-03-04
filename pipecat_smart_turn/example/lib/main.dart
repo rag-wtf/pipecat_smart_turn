@@ -20,7 +20,25 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
+      title: 'Smart Turn Demo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: Colors.indigo,
+        scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
+        cardTheme: const CardThemeData(
+          color: Color(0xFF1E293B), // Slate 800
+          elevation: 8,
+          shadowColor: Colors.black45,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(24)),
+            side: BorderSide(
+              color: Color(0xFF334155),
+            ), // Slate 700
+          ),
+        ),
+      ),
       home: const SmartTurnDemo(),
     );
   }
@@ -37,7 +55,10 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   // Using dynamic since types from deferred libraries cannot be used
   // as annotations
   dynamic _detector;
+  dynamic _vad;
   dynamic _lastResult;
+  String? _lastVadStateStr;
+
   String _status = 'Initializing...';
 
   StreamSubscription<Float32List>? _audioSub;
@@ -62,14 +83,18 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
 
       final config = smart_turn.SmartTurnConfig();
       _detector = smart_turn.SmartTurnDetector(config: config);
+      _vad = smart_turn.EnergyVad(
+        silenceGraceFrames: 10,
+      ); // Slightly longer grace for visual stability
       await _detector.initialize();
+
       _audioBuffer = smart_turn.AudioBuffer(
         maxSeconds: config.maxAudioSeconds,
       );
 
       if (!mounted) return;
       setState(() {
-        _status = 'Bundled model loaded successfully. Ready for stream.';
+        _status = 'Engine Ready';
       });
     } on Exception catch (e) {
       if (!mounted) return;
@@ -92,11 +117,13 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
 
     if (await _audioRecorder.hasPermission()) {
       _audioBuffer?.clear();
+      _vad?.reset();
 
       setState(() {
         _isRecording = true;
         _lastResult = null;
-        _status = 'Listening to microphone...';
+        _lastVadStateStr = null;
+        _status = 'Listening';
       });
 
       final stream = await _audioRecorder.startStream(
@@ -120,6 +147,17 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
             float32List[i] = pcm16 / 32768.0;
           }
 
+          // 1. Process VAD
+          final vadState = _vad?.process(float32List);
+          final vadStr = vadState?.toString().split('.').last;
+
+          if (vadStr != _lastVadStateStr && mounted) {
+            setState(() {
+              _lastVadStateStr = vadStr;
+            });
+          }
+
+          // 2. Process Semantic Turn
           _audioBuffer?.append(float32List);
           final fullContextList = _audioBuffer?.toFloat32List() as Float32List?;
           if (fullContextList == null || fullContextList.isEmpty) return;
@@ -129,10 +167,11 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
             setState(() {
               _lastResult = result;
               if (result.isComplete as bool) {
-                _status = 'User finished turn!';
+                _status = 'Turn Complete';
                 _audioBuffer?.clear();
+                _vad?.reset();
               } else {
-                _status = 'User is speaking...';
+                _status = 'Listening';
               }
             });
           }
@@ -149,7 +188,7 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
       });
     } else {
       if (mounted) {
-        setState(() => _status = 'Microphone permission denied.');
+        setState(() => _status = 'Mic permission denied');
       }
     }
   }
@@ -158,14 +197,12 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
     await _micSub?.cancel();
     _micSub = null;
     _audioBuffer?.clear();
+    _vad?.reset();
     await _audioRecorder.stop();
     if (mounted) {
       setState(() {
         _isRecording = false;
-        if (_status == 'Listening to microphone...' ||
-            _status == 'User is speaking...') {
-          _status = 'Recording stopped.';
-        }
+        _status = 'Engine Ready';
       });
     }
   }
@@ -173,37 +210,40 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   Future<void> _simulateStreamInference() async {
     if (_detector == null) return;
 
-    // Setup for Stream Optimization
     setState(() {
       _lastResult = null;
-      _status = 'Streaming simulated audio...';
+      _lastVadStateStr = null;
+      _status = 'Simulating Stream';
     });
 
     await _audioSub?.cancel();
+    _vad?.reset();
 
-    // 3. Stream Optimization: emit audio chunks periodically
-    // instead of one massive block
     final chunkStream = Stream.periodic(const Duration(milliseconds: 500), (
       count,
     ) {
       // Simulate roughly 500ms of audio (8000 samples at 16kHz)
-      return Float32List(8000);
-    }).take(16); // Run for 8 seconds total (16 * 500ms)
+      return Float32List(8000); // 0s simulate silence
+    }).take(16);
 
     _audioSub = chunkStream.listen((chunk) async {
-      // 2. Chunked Execution: Yield to the event loop before heavy tasks
-      // to prevent UI jank
       await Future<void>.delayed(Duration.zero);
 
       try {
+        final vadState = _vad?.process(chunk);
+        final vadStr = vadState?.toString().split('.').last;
+
         final result = await _detector.predict(chunk);
-        if (result != null && mounted) {
+        if (mounted) {
           setState(() {
-            _lastResult = result;
-            if (result.isComplete as bool) {
-              _status = 'User finished turn!';
+            _lastVadStateStr = vadStr;
+            if (result != null) _lastResult = result;
+
+            if (result != null && (result.isComplete as bool)) {
+              _status = 'Turn Complete';
+              _vad?.reset();
             } else {
-              _status = 'User is speaking...';
+              _status = 'Simulating Stream';
             }
           });
         }
@@ -215,7 +255,7 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
     });
 
     _audioSub?.onDone(() {
-      if (mounted && _status == 'Streaming simulated audio...') {
+      if (mounted && _status == 'Simulating Stream') {
         setState(() => _status = 'Stream naturally finished.');
       }
     });
@@ -235,76 +275,145 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
 
   @override
   Widget build(BuildContext context) {
+    final isReady =
+        _status.contains('Ready') ||
+        _status.contains('Complete') ||
+        _status.contains('finished') ||
+        _status == 'Listening' ||
+        _status == 'Simulating Stream';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Smart Turn Demo')),
+      appBar: AppBar(
+        title: const Text(
+          'Smart Turn AI',
+          style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.5),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'On-Device Semantic VAD',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _status,
-                style: const TextStyle(fontStyle: FontStyle.italic),
-              ),
-              const Divider(height: 48),
-              if (_lastResult != null) ...[
-                const Text(
-                  'Incremental Stream Result:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                _ResultRow(
-                  'Is Complete:',
-                  (_lastResult!.isComplete as bool) ? 'YES' : 'NO',
-                  color: (_lastResult!.isComplete as bool)
-                      ? Colors.green
-                      : Colors.orange,
-                ),
-                _ResultRow(
-                  'Confidence:',
-                  '${(_lastResult!.confidence * 100).toStringAsFixed(1)}%',
-                ),
-                _ResultRow(
-                  'Latency (Per chunk):',
-                  '${_lastResult!.latencyMs}ms',
-                ),
-              ] else
-                const Center(child: Text('No stream data yet.')),
-              const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed:
-                        (_status.contains('Ready') ||
-                                _status.contains('finished') ||
-                                _status.contains('User') ||
-                                _status.contains('stopped') ||
-                                _status == 'Stream naturally finished.') &&
-                            !_isRecording
-                        ? () => unawaited(_simulateStreamInference())
-                        : null,
-                    icon: const Icon(Icons.science),
-                    label: const Text('Test'),
+              // Status Header
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
                   ),
-                  ElevatedButton.icon(
-                    onPressed:
-                        _status.contains('Ready') ||
-                            _status.contains('finished') ||
-                            _status.contains('User') ||
-                            _status.contains('stopped') ||
-                            _status == 'Stream naturally finished.' ||
-                            _isRecording
-                        ? () => unawaited(_toggleRecording())
-                        : null,
-                    icon: Icon(_isRecording ? Icons.stop : Icons.mic),
-                    label: Text(_isRecording ? 'Stop' : 'Record'),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color:
+                              _status == 'Listening' ||
+                                  _status == 'Simulating Stream'
+                              ? Colors.redAccent
+                              : Colors.tealAccent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _status.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Dashboard Cards
+              Expanded(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _VadStateCard(vadStateStr: _lastVadStateStr),
+                    const SizedBox(height: 16),
+                    _SemanticTurnCard(result: _lastResult),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              // Controls
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isReady && !_isRecording
+                          ? () => unawaited(_simulateStreamInference())
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        backgroundColor: const Color(0xFF334155),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      icon: const Icon(Icons.science_outlined),
+                      label: const Text(
+                        'TEST (Zero)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isReady
+                          ? () => unawaited(_toggleRecording())
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        backgroundColor: _isRecording
+                            ? Colors.redAccent.withValues(alpha: 0.2)
+                            : Colors.indigoAccent,
+                        foregroundColor: _isRecording
+                            ? Colors.redAccent
+                            : Colors.white,
+                        shadowColor: _isRecording
+                            ? Colors.transparent
+                            : Colors.indigoAccent.withValues(alpha: 0.5),
+                        elevation: _isRecording ? 0 : 8,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: _isRecording
+                              ? const BorderSide(
+                                  color: Colors.redAccent,
+                                  width: 2,
+                                )
+                              : BorderSide.none,
+                        ),
+                      ),
+                      icon: Icon(
+                        _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                      ),
+                      label: Text(
+                        _isRecording ? 'STOP' : 'LIVE MIC',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -316,27 +425,320 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   }
 }
 
-class _ResultRow extends StatelessWidget {
-  const _ResultRow(this.label, this.value, {this.color});
-
-  final String label;
-  final String value;
-  final Color? color;
+class _EmptyCard extends StatelessWidget {
+  const _EmptyCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+  final String title;
+  final String subtitle;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            value,
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
-          ),
-        ],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          children: [
+            Icon(icon, size: 48, color: Colors.white12),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.3),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _VadStateCard extends StatelessWidget {
+  const _VadStateCard({this.vadStateStr});
+  final String? vadStateStr;
+
+  @override
+  Widget build(BuildContext context) {
+    if (vadStateStr == null) {
+      return const _EmptyCard(
+        title: 'Energy Context',
+        subtitle: 'Awaiting audio frames...',
+        icon: Icons.waves_rounded,
+      );
+    }
+
+    Color color;
+    IconData icon;
+    String label;
+    String desc;
+
+    switch (vadStateStr) {
+      case 'speechStart':
+        color = Colors.tealAccent;
+        icon = Icons.record_voice_over;
+        label = 'Speech Started';
+        desc = 'Audio crossed energy threshold';
+      case 'speech':
+        color = Colors.greenAccent;
+        icon = Icons.graphic_eq_rounded;
+        label = 'Speaking';
+        desc = 'Ongoing active speech detected';
+      case 'silenceAfterSpeech':
+        color = Colors.amberAccent;
+        icon = Icons.mic_none_rounded;
+        label = 'Silence (Grace)';
+        desc = 'Energy dropped, awaiting grace';
+      case 'evaluatingSilence':
+        color = Colors.deepOrangeAccent;
+        icon = Icons.hourglass_empty_rounded;
+        label = 'Evaluating';
+        desc = 'Delaying turn check';
+      case 'silence':
+      default:
+        color = const Color(0xFF64748B); // Slate 500
+        icon = Icons.mic_off_rounded;
+        label = 'Silence';
+        desc = 'Low energy, background noise';
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.waves_rounded,
+                  color: Colors.blueAccent,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Energy Context',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 36),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(
+                          label,
+                          key: ValueKey(label),
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                            color: color,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        desc,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SemanticTurnCard extends StatelessWidget {
+  const _SemanticTurnCard({this.result});
+  final dynamic result;
+
+  @override
+  Widget build(BuildContext context) {
+    if (result == null) {
+      return const _EmptyCard(
+        title: 'Semantic Context',
+        subtitle: 'Awaiting tensor inference...',
+        icon: Icons.psychology_rounded,
+      );
+    }
+
+    final isComplete = result.isComplete as bool;
+    final confidence = result.confidence as double;
+    final latency = result.latencyMs as int;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isComplete ? Icons.check_circle_rounded : Icons.sync_rounded,
+                  color: isComplete ? Colors.greenAccent : Colors.amberAccent,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Semantic Context',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${latency}ms',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              isComplete ? 'TURN COMPLETE' : 'INCOMPLETE',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                color: isComplete ? Colors.greenAccent : Colors.amberAccent,
+              ),
+            ),
+            const SizedBox(height: 28),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Completion Probability',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  '${(confidence * 100).toStringAsFixed(1)}%',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedProgressBar(
+                value: confidence,
+                color: isComplete ? Colors.greenAccent : Colors.amberAccent,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AnimatedProgressBar extends StatelessWidget {
+  const AnimatedProgressBar({
+    required this.value,
+    required this.color,
+    super.key,
+  });
+  final double value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          height: 12,
+          width: constraints.maxWidth,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Stack(
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: constraints.maxWidth * value,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
