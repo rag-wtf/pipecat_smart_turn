@@ -153,6 +153,11 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
 
           if (vadStr != _lastVadStateStr && mounted) {
             setState(() {
+              // Reset Semantic Context when energy transitions away from silence
+              // (new speech activity makes the prior prediction stale)
+              if (_lastVadStateStr == 'silence' && vadStr != 'silence') {
+                _lastResult = null;
+              }
               _lastVadStateStr = vadStr;
             });
           }
@@ -207,6 +212,7 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
     if (mounted) {
       setState(() {
         _isRecording = false;
+        _lastResult = null; // Reset Semantic Context on Stop
         _status = 'Engine Ready';
       });
     }
