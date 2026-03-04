@@ -32,7 +32,7 @@ void main() {
       const sr = 16000.0;
       final audio = Float32List(128000);
       for (var i = 0; i < audio.length; i++) {
-        audio[i] = math.sin(2 * math.pi * freq * i / sr).toDouble();
+        audio[i] = math.sin(2 * math.pi * freq * i / sr);
       }
 
       final result = MelSpectrogram.compute(audio);
