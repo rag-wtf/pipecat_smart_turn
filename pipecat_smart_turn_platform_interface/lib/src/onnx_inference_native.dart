@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
+import 'package:pipecat_smart_turn_platform_interface/src/mel_spectrogram.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_env.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_session.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_value.dart';
@@ -56,26 +57,29 @@ class SmartTurnOnnxSession {
     }
 
     try {
-      // coverage:ignore-start
-      final inputShape = [1, 128000];
+      // Compute log-mel spectrogram: shape [1, 80, 800] = 64,000 values.
+      final melData = MelSpectrogram.compute(audioSamples);
+      final inputShape = [1, MelSpectrogram.kNMels, MelSpectrogram.kNumFrames];
       final inputTensor = OrtValueTensor.createTensorWithDataList(
-        audioSamples,
+        melData,
         inputShape,
       );
 
-      final inputs = {'input': inputTensor};
+      final inputs = {'input_features': inputTensor};
       final runOptions = OrtRunOptions();
 
       // Forward pass
       final outputs = _session!.run(runOptions, inputs);
 
-      // Model outputs a single tensor named 'logits' with shape [1, 2]
+      // Model outputs a single logit tensor 'logits' of shape [batch, 1].
       final logitsList = outputs[0]?.value as List?;
       if (logitsList == null) {
         throw const SmartTurnInferenceException('Model returned null logits.');
       }
-      final logitsRow = logitsList[0] as List;
-      final result = (logitsRow[0] as double, logitsRow[1] as double);
+      final logit = (logitsList[0] as List)[0] as double;
+
+      // Return (-logit, logit) so softmax2(-x, x) == sigmoid(x).
+      final result = (-logit, logit);
 
       // Cleanup native resources
       inputTensor.release();

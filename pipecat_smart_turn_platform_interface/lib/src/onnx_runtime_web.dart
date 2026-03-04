@@ -43,9 +43,8 @@ extension type SessionOptions._(JSObject _) implements JSObject {
 SessionOptions createSessionOptions({
   List<String> executionProviders = const ['wasm'],
 }) {
-  final opts = <String, Object>{}.jsify()! as SessionOptions;
-  opts.executionProviders = executionProviders.map((e) => e.toJS).toList().toJS;
-  return opts;
+  return (<String, Object>{}.jsify()! as SessionOptions)
+    ..executionProviders = executionProviders.map((e) => e.toJS).toList().toJS;
 }
 
 @JS()
