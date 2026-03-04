@@ -20,7 +20,8 @@ final DynamicLibrary _dylib = () {
   }
 
   if (Platform.isLinux) {
-    return DynamicLibrary.open('libonnxruntime.so.1.24.2');
+    final execDir = File(Platform.resolvedExecutable).parent.path;
+    return DynamicLibrary.open('$execDir/lib/libonnxruntime.so.1.24.2');
   }
 
   throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
