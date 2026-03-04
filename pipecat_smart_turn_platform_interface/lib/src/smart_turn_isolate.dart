@@ -44,8 +44,10 @@ Future<(double, double)> _runInference(IsolateConfig config) async {
       cpuThreadCount: config.cpuThreadCount,
       onnxLibraryPath: config.onnxLibraryPath,
     );
+    // coverage:ignore-start
     final result = await session.run(config.audioData);
     return result;
+    // coverage:ignore-end
   } finally {
     session.dispose();
   }

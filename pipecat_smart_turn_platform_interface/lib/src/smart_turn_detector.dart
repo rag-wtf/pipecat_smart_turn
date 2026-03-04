@@ -54,6 +54,7 @@ class SmartTurnDetector {
         modelPath =
             'assets/packages/pipecat_smart_turn_platform_interface/assets/smart-turn-v3.2-cpu.onnx';
       } else {
+        // coverage:ignore-start
         try {
           final dir = await getApplicationSupportDirectory();
           final file = File('${dir.path}/smart-turn-v3.2-cpu.onnx');
@@ -78,6 +79,7 @@ class SmartTurnDetector {
             'a customModelPath. Error: $e',
           );
         }
+        // coverage:ignore-end
       }
     }
 

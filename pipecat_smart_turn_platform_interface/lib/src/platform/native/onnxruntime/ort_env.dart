@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart';

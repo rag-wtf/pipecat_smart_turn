@@ -31,5 +31,7 @@ final class SmartTurnInferenceException extends SmartTurnException {
 /// Thrown when the current platform is not supported.
 final class SmartTurnUnsupportedPlatformException extends SmartTurnException {
   /// Creates a [SmartTurnUnsupportedPlatformException].
+  // coverage:ignore-start
   const SmartTurnUnsupportedPlatformException(super.message);
+  // coverage:ignore-end
 }

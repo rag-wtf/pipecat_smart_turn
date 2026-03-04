@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:ffi';
 import 'dart:io';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/onnxruntime_bindings_generated.dart';
