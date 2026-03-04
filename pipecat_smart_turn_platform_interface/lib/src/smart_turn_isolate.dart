@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/onnx_inference.dart';
-import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart';
 
 /// Configuration passed to the background compute function.
 @visibleForTesting
@@ -65,15 +64,18 @@ class SmartTurnIsolate {
 
   /// Initializes the parameters for subsequent inference calls.
   /// No heavy initialization is done here because [compute] spawns statelessly.
+  ///
+  /// [onnxLibraryPath] must be pre-resolved in the main isolate via
+  /// `resolveOnnxLibraryPath()` from `bindings.dart` before calling this
+  /// method. Null on platforms that do not need an explicit path (iOS, macOS).
   Future<void> spawn({
     required String modelFilePath,
     int cpuThreadCount = 1,
+    String? onnxLibraryPath,
   }) async {
     _modelFilePath = modelFilePath;
     _cpuThreadCount = cpuThreadCount;
-    // Resolve the library path here, in the main isolate, where
-    // Platform.resolvedExecutable correctly points to the app bundle binary.
-    _onnxLibraryPath = resolveOnnxLibraryPath();
+    _onnxLibraryPath = onnxLibraryPath;
   }
 
   /// Sends audio to [compute] for inference and awaits logits.

@@ -106,6 +106,10 @@ class SmartTurnOnnxSession {
   /// Releases ONNX Runtime session and environment resources.
   void dispose() {
     // coverage:ignore-start
+    // Only release resources that were actually acquired. If initialize()
+    // threw before OrtEnv.setup() was called, _isInitialized is false and
+    // OrtEnv._instance is null — calling OrtEnv.instance would crash.
+    if (!_isInitialized) return;
     _session?.release();
     _session = null;
     OrtEnv.instance.release();

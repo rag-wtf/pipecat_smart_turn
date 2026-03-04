@@ -50,6 +50,7 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
   Future<void> spawn({
     required String modelFilePath,
     int cpuThreadCount = 1,
+    String? onnxLibraryPath,
   }) async {
     spawnCalled = true;
     spawnedModelPath = modelFilePath;

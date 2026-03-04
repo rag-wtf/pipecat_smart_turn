@@ -10,6 +10,7 @@ import 'package:pipecat_smart_turn_platform_interface/src/audio_preprocessor.dar
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/math_utils.dart'; // softmax2
 import 'package:pipecat_smart_turn_platform_interface/src/onnx_inference.dart'; // SmartTurnOnnxSession
+import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/smart_turn_config.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/smart_turn_isolate.dart'; // SmartTurnIsolate
 import 'package:pipecat_smart_turn_platform_interface/src/smart_turn_result.dart';
@@ -80,17 +81,24 @@ class SmartTurnDetector {
       }
     }
 
+    // Resolve the native library path here, in the main isolate, where
+    // Platform.resolvedExecutable correctly points to the app bundle.
+    // This is then passed into session/isolate so compute() workers get it.
+    final onnxLibraryPath = resolveOnnxLibraryPath();
+
     if (config.useIsolate) {
       _inferenceIsolate = isolateOverride ?? SmartTurnIsolate();
       await _inferenceIsolate!.spawn(
         modelFilePath: modelPath,
         cpuThreadCount: config.cpuThreadCount,
+        onnxLibraryPath: onnxLibraryPath,
       );
     } else {
       _session = sessionOverride ?? SmartTurnOnnxSession();
       await _session!.initialize(
         modelFilePath: modelPath,
         cpuThreadCount: config.cpuThreadCount,
+        onnxLibraryPath: onnxLibraryPath,
       );
     }
 
