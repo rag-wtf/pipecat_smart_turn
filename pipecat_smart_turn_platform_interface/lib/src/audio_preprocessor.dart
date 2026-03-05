@@ -57,8 +57,23 @@ class AudioPreprocessor {
   }
 
   /// Converts raw bytes (Int16 Little Endian) to normalized Float32.
+  ///
+  /// **Offset/length guards**: The [bytes] parameter may be a *sublist view*
+  /// of a larger [ByteBuffer] (e.g. when the `record` package streams audio
+  /// chunks from its internal ring buffer). A bare `bytes.buffer.asInt16List()`
+  /// would interpret the *entire* underlying buffer starting at byte 0,
+  /// ignoring the view's [Uint8List.offsetInBytes] and
+  /// [Uint8List.lengthInBytes].
+  /// This produces garbage samples → the EnergyVad never detects speech
+  /// → the UI shows "Awaiting audio frames" indefinitely.
+  ///
+  /// By passing [Uint8List.offsetInBytes] and the derived sample count we
+  /// ensure only the intended slice is converted.
   static Float32List bytesToFloat32(Uint8List bytes) {
-    final int16Data = bytes.buffer.asInt16List();
+    final int16Data = bytes.buffer.asInt16List(
+      bytes.offsetInBytes,
+      bytes.lengthInBytes ~/ 2,
+    );
     return int16ToFloat32(int16Data);
   }
 

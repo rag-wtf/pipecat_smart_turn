@@ -57,7 +57,9 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
   dynamic _detector;
   dynamic _vad;
   dynamic _lastResult;
+  dynamic _config;
   String? _lastVadStateStr;
+  String _platformName = '';
 
   String _status = 'Initializing...';
 
@@ -81,26 +83,37 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
       // Execute deferred loading here before instantiating ONNX components
       await smart_turn.loadLibrary();
 
-      final config = smart_turn.SmartTurnConfig();
-      _detector = smart_turn.SmartTurnDetector(config: config);
-      _vad = smart_turn.EnergyVad(
-        silenceGraceFrames: 10,
-      ); // Slightly longer grace for visual stability
+      // 3. Display active SmartTurnConfig values — create named config object
+      //    so we can inspect it in the UI.
+      // Note: cannot use `const` with deferred types.
+      _config = smart_turn.SmartTurnConfig();
+      // SmartTurnDetector uses default SmartTurnConfig internally;
+      // we keep _config separately just to display its values in the UI.
+      _detector = smart_turn.SmartTurnDetector();
+      _vad = smart_turn.EnergyVad();
       await _detector.initialize();
 
       _audioBuffer = smart_turn.AudioBuffer(
-        maxSeconds: config.maxAudioSeconds,
+        maxSeconds: _config.maxAudioSeconds as double,
       );
+
+      // 3. Fetch platform name via PipecatSmartTurnPlatform.instance
+      final name = await smart_turn.PipecatSmartTurnPlatform.instance
+          .getPlatformName();
 
       if (!mounted) return;
       setState(() {
+        _platformName = name ?? '';
         _status = 'Engine Ready';
       });
     } on Exception catch (e) {
+      // 5. Typed exceptions from the package (SmartTurnModelLoadException,
+      //    SmartTurnInferenceException, SmartTurnNotInitializedException) all
+      //    extend SmartTurnException which implements Exception. Because the
+      //    import is deferred, Dart prohibits type tests on these types here;
+      //    we catch Exception and surface the message instead.
       if (!mounted) return;
-      setState(() {
-        _status = 'Initialization error: $e';
-      });
+      setState(() => _status = 'Initialization error: $e');
     }
   }
 
@@ -139,12 +152,16 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
         await Future<void>.delayed(Duration.zero);
 
         try {
-          // Convert 16-bit PCM (little endian) to Float32List (-1.0 to 1.0)
-          final float32List = Float32List(data.length ~/ 2);
+          // 4. Convert to normalized Float32 [-1.0, 1.0]
+          //    ByteData.sublistView safely handles Android record package's
+          //    unaligned buffer offsets.
           final byteData = ByteData.sublistView(data);
-          for (var i = 0; i < float32List.length; i++) {
-            final pcm16 = byteData.getInt16(i * 2, Endian.little);
-            float32List[i] = pcm16 / 32768.0;
+          final sampleCount = byteData.lengthInBytes ~/ 2;
+          final float32List = Float32List(sampleCount);
+
+          for (var i = 0; i < sampleCount; i++) {
+            final sample = byteData.getInt16(i * 2, Endian.little);
+            float32List[i] = sample / 32768.0;
           }
 
           // 1. Process VAD
@@ -153,7 +170,8 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
 
           if (vadStr != _lastVadStateStr && mounted) {
             setState(() {
-              // Reset Semantic Context when energy transitions away from silence
+              // Reset Semantic Context when energy transitions
+              // away from silence
               // (new speech activity makes the prior prediction stale)
               if (_lastVadStateStr == 'silence' && vadStr != 'silence') {
                 _lastResult = null;
@@ -185,10 +203,15 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
               });
             }
           }
+        } on Exception catch (e) {
+          // 5. SmartTurnInferenceException extends SmartTurnException which
+          //    implements Exception. Deferred-type `is` checks are not allowed;
+          //    we catch Exception and surface the message.
+          if (!mounted) return;
+          setState(() => _status = 'Inference error: $e');
         } on Object catch (e) {
-          if (mounted) {
-            setState(() => _status = 'Error: $e');
-          }
+          if (!mounted) return;
+          setState(() => _status = 'Error: $e');
         }
       });
       _micSub?.onError((Object error) {
@@ -228,6 +251,8 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
     });
 
     await _audioSub?.cancel();
+    // 1. Fix: also reset and clear AudioBuffer for simulation
+    _audioBuffer?.clear();
     _vad?.reset();
 
     final chunkStream = Stream.periodic(const Duration(milliseconds: 500), (
@@ -244,8 +269,14 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
         final vadState = _vad?.process(chunk);
         final vadStr = vadState?.toString().split('.').last;
 
+        // 1. Fix: accumulate in AudioBuffer just like the live mic path
+        _audioBuffer?.append(chunk);
+
         if (vadStr == 'evaluatingSilence' || vadStr == 'silenceAfterSpeech') {
-          final result = await _detector.predict(chunk);
+          // 1. Fix: predict on full audio context, not just the raw chunk
+          final fullContext = _audioBuffer?.toFloat32List() as Float32List?;
+          if (fullContext == null || fullContext.isEmpty) return;
+          final result = await _detector.predict(fullContext);
           if (mounted) {
             setState(() {
               _lastVadStateStr = vadStr;
@@ -253,6 +284,7 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
 
               if (result != null && (result.isComplete as bool)) {
                 _status = 'Turn Complete';
+                _audioBuffer?.clear();
                 _vad?.reset();
               } else {
                 _status = 'Simulating Stream';
@@ -264,10 +296,15 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
             _lastVadStateStr = vadStr;
           });
         }
+      } on Exception catch (e) {
+        // 5. SmartTurnInferenceException extends SmartTurnException which
+        //    implements Exception. Deferred-type `is` checks are not allowed;
+        //    we catch Exception and surface the message.
+        if (!mounted) return;
+        setState(() => _status = 'Inference error: $e');
       } on Object catch (e) {
-        if (mounted) {
-          setState(() => _status = 'Error: $e');
-        }
+        if (!mounted) return;
+        setState(() => _status = 'Error: $e');
       }
     });
 
@@ -301,9 +338,26 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Smart Turn AI',
-          style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.5),
+        title: Column(
+          children: [
+            const Text(
+              'Smart Turn AI',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.5,
+              ),
+            ),
+            // 3. Display platform name under the title
+            if (_platformName.isNotEmpty)
+              Text(
+                'Platform: $_platformName',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withValues(alpha: 0.5),
+                  letterSpacing: 0.5,
+                ),
+              ),
+          ],
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -354,7 +408,11 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+
+              // 4. SmartTurnConfig info row
+              if (_config != null) _ConfigInfoRow(config: _config),
+              const SizedBox(height: 16),
 
               // Dashboard Cards
               Expanded(
@@ -438,6 +496,89 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// 4. Config info strip — shows SmartTurnConfig field values
+class _ConfigInfoRow extends StatelessWidget {
+  const _ConfigInfoRow({required this.config});
+  final dynamic config;
+
+  @override
+  Widget build(BuildContext context) {
+    final threshold = (config.completionThreshold as double) * 100;
+    final maxSecs = config.maxAudioSeconds as double;
+    final useIsolate = config.useIsolate as bool;
+    final threads = config.cpuThreadCount as int;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _ConfigChip(label: 'Threshold', value: '${threshold.toInt()}%'),
+          _ConfigDivider(),
+          _ConfigChip(
+            label: 'Max Audio',
+            value: '${maxSecs.toStringAsFixed(0)}s',
+          ),
+          _ConfigDivider(),
+          _ConfigChip(label: 'Isolate', value: useIsolate ? 'ON' : 'OFF'),
+          _ConfigDivider(),
+          _ConfigChip(
+            label: 'Threads',
+            value: threads.toString(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConfigDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 24,
+    color: Colors.white.withValues(alpha: 0.1),
+  );
+}
+
+class _ConfigChip extends StatelessWidget {
+  const _ConfigChip({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'monospace',
+            color: Colors.tealAccent,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.white.withValues(alpha: 0.4),
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -623,7 +764,9 @@ class _SemanticTurnCard extends StatelessWidget {
 
     final isComplete = result.isComplete as bool;
     final confidence = result.confidence as double;
+    final incompleteConfidence = result.incompleteConfidence as double;
     final latency = result.latencyMs as int;
+    final audioLengthMs = result.audioLengthMs as double;
 
     return Card(
       child: Padding(
@@ -649,24 +792,21 @@ class _SemanticTurnCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${latency}ms',
-                    style: TextStyle(
+                // 2. Show both latency and audio length in header
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _MetricBadge(
+                      text: '${latency}ms inference',
                       color: Colors.white.withValues(alpha: 0.6),
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    _MetricBadge(
+                      text:
+                          '${(audioLengthMs / 1000).toStringAsFixed(1)}s audio',
+                      color: Colors.blueAccent.withValues(alpha: 0.8),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -681,37 +821,92 @@ class _SemanticTurnCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 28),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Completion Probability',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  '${(confidence * 100).toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+            // 2. Completion probability row
+            _ProbabilityRow(
+              label: 'Completion Probability',
+              value: confidence,
+              color: isComplete ? Colors.greenAccent : Colors.amberAccent,
             ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: AnimatedProgressBar(
-                value: confidence,
-                color: isComplete ? Colors.greenAccent : Colors.amberAccent,
-              ),
+            const SizedBox(height: 16),
+            // 2. Incomplete confidence row (incompleteConfidence getter)
+            _ProbabilityRow(
+              label: 'Incomplete Probability',
+              value: incompleteConfidence,
+              color: Colors.blueGrey,
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MetricBadge extends StatelessWidget {
+  const _MetricBadge({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontFamily: 'monospace',
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProbabilityRow extends StatelessWidget {
+  const _ProbabilityRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final String label;
+  final double value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
+            ),
+            Text(
+              '${(value * 100).toStringAsFixed(1)}%',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace',
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: AnimatedProgressBar(value: value, color: color),
+        ),
+      ],
     );
   }
 }

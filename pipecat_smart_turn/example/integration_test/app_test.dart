@@ -9,13 +9,12 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('E2E', () {
-    testWidgets('getPlatformName', (tester) async {
+    testWidgets('shows platform name in AppBar', (tester) async {
       app.main();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Get Platform Name'));
-      await tester.pumpAndSettle();
       final expected = expectedPlatformName();
-      await tester.ensureVisible(find.text('Platform Name: $expected'));
+      // Platform name is displayed in the AppBar subtitle area
+      await tester.ensureVisible(find.text('Platform: $expected'));
     });
   });
 }
