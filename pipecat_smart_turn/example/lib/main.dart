@@ -782,16 +782,20 @@ class _SemanticTurnCard extends StatelessWidget {
                   size: 24,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'Semantic Context',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                    color: Colors.white.withValues(alpha: 0.7),
+                Expanded(
+                  child: Text(
+                    'Semantic Context',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 12),
                 // 2. Show both latency and audio length in header
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
