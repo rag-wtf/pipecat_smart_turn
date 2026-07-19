@@ -42,7 +42,10 @@ class EnergyVad {
   /// The number of silent frames to wait before declaring silence.
   final int silenceGraceFrames;
 
-  double _noiseFloor = 0.01; // Initial floor estimate
+  /// The initial noise floor estimate is set to a low ambient RMS level (0.001).
+  /// The VAD requires a brief warm-up period to adapt this floor to the
+  /// actual environment.
+  double _noiseFloor = 0.001; // Initial floor estimate
   int _silenceCounter = 0;
   bool _isSpeaking = false;
 
@@ -80,8 +83,12 @@ class EnergyVad {
   }
 
   /// Resets internal state (e.g., after a turn is complete).
-  void reset() {
+  /// If [newNoiseFloor] is provided, it replaces the current tracked floor.
+  void reset({double? newNoiseFloor}) {
     _silenceCounter = 0;
     _isSpeaking = false;
+    if (newNoiseFloor != null) {
+      _noiseFloor = newNoiseFloor;
+    }
   }
 }

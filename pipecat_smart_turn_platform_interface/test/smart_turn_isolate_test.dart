@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -23,23 +24,14 @@ void main() {
 
     test('spawn stores configuration', () async {
       final isolate = SmartTurnIsolate();
-      await isolate.spawn(
-        modelFilePath: 'model.onnx',
-        cpuThreadCount: 4,
-      );
-
-      // predict will attempt to compute but fail inside compute loop because
-      // the native library or the file doesn't exist.
       try {
-        await isolate.predict(Float32List(128000));
+        await isolate.spawn(
+          modelFilePath: 'model.onnx',
+          cpuThreadCount: 4,
+        );
         fail('Should not reach here');
       } on Object catch (e) {
-        expect(
-          e is SmartTurnInferenceException ||
-              e is ArgumentError ||
-              e.toString().contains('Failed to load dynamic library'),
-          isTrue,
-        );
+        expect(e, isA<SmartTurnModelLoadException>());
       }
       isolate.kill();
     });
@@ -47,15 +39,15 @@ void main() {
 
   group('IsolateConfig', () {
     test('constructs correctly', () {
+      final port = ReceivePort();
       final config = IsolateConfig(
         modelFilePath: 'test.onnx',
         cpuThreadCount: 2,
-        audioData: Float32List(100),
+        sendPort: port.sendPort,
       );
 
       expect(config.modelFilePath, 'test.onnx');
       expect(config.cpuThreadCount, 2);
-      expect(config.audioData.length, 100);
     });
   });
 }

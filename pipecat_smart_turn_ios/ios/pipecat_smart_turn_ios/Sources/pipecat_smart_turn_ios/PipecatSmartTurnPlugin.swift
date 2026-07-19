@@ -9,6 +9,11 @@ public class PipecatSmartTurnPlugin: NSObject, FlutterPlugin {
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    result("iOS")
+    switch call.method {
+    case "getPlatformName":
+      result("iOS")
+    default:
+      result(FlutterMethodNotImplemented)
+    }
   }
 }

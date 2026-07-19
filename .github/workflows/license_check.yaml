@@ -32,3 +32,39 @@ jobs:
     with:
       allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
       working_directory: pipecat_smart_turn_platform_interface
+
+  license_check_android:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      working_directory: pipecat_smart_turn_android
+
+  license_check_ios:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      working_directory: pipecat_smart_turn_ios
+
+  license_check_linux:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      working_directory: pipecat_smart_turn_linux
+
+  license_check_macos:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      working_directory: pipecat_smart_turn_macos
+
+  license_check_web:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      working_directory: pipecat_smart_turn_web
+
+  license_check_windows:
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/license_check.yml@v1
+    with:
+      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      working_directory: pipecat_smart_turn_windows

@@ -2,9 +2,16 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'dart:typed_data';
 
+import 'package:pipecat_smart_turn_platform_interface/src/constants.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/mel_spectrogram.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/onnx_runtime_web.dart';
+
+String? resolveOnnxLibraryPath() => null;
+
+Future<String> extractBundledModel() async {
+  return 'assets/$kDefaultModelAssetPath';
+}
 
 /// Wraps the ONNX Runtime session for Smart Turn v3 on Web.
 class SmartTurnOnnxSession {
@@ -18,6 +25,7 @@ class SmartTurnOnnxSession {
   Future<void> initialize({
     required String modelFilePath,
     int cpuThreadCount = 1,
+    String? onnxLibraryPath, // Ignored on web
   }) async {
     if (_isInitialized) return;
 
@@ -42,9 +50,7 @@ class SmartTurnOnnxSession {
   /// Internally converts to a Whisper-compatible log-mel spectrogram
   /// [1, 80, 800] before running the ONNX model.
   ///
-  /// Returns `(-logit, logit)` so that the caller's `softmax2(-x, x)` gives
-  /// `sigmoid(logit)` as the completion probability.
-  Future<(double, double)> run(Float32List audioSamples) async {
+  Future<double> run(Float32List audioSamples) async {
     if (!_isInitialized || _session == null) {
       throw const SmartTurnNotInitializedException();
     }
@@ -68,12 +74,11 @@ class SmartTurnOnnxSession {
       final feeds = {'input_features': inputTensor}.jsify()! as JSObject;
       final outputs = await _session!.run(feeds).toDart;
 
-      // Model outputs a single logit tensor 'logits' of shape [batch, 1].
+      // Model outputs a single probability tensor 'logits' of shape [batch, 1].
       final logitsTensor = outputs['logits'];
-      final logit = logitsTensor.data.toDart[0];
+      final probability = logitsTensor.data.toDart[0] as double;
 
-      // Return (-logit, logit) so softmax2(-x, x) == sigmoid(x).
-      return (-logit, logit);
+      return probability;
     } on Object catch (e) {
       throw SmartTurnInferenceException('ONNX Web inference failed: $e');
     }

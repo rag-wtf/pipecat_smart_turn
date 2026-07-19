@@ -8,9 +8,9 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
   An iOS implementation of the pipecat_smart_turn plugin.
                        DESC
-  s.homepage         = 'http://example.com'
-  s.license          = { :type => 'BSD', :file => '../LICENSE' }
-  s.author           = { 'Wtf Rag Pipecat Smart Turn' => 'email@example.com' }
+  s.homepage         = 'https://rag.wtf'
+  s.license          = { :type => 'MIT', :file => '../LICENSE' }
+  s.author           = { 'limcheekin' => 'limcheekin@vobject.com' }
   s.source           = { :path => '.' }  
   s.source_files = 'pipecat_smart_turn_ios/Sources/**/*.swift'
   s.dependency 'Flutter'

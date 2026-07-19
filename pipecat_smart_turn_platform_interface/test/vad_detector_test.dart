@@ -38,7 +38,7 @@ void main() {
 
     test('noise floor adapts to low signal', () {
       // Use high weight for fast adaptation in test
-      final vad = EnergyVad(noiseFloorWeight: 0.5);
+      final vad = EnergyVad(noiseFloorWeight: 0.5)..reset(newNoiseFloor: 0.1);
 
       // Simulate high noise floor initially
       final initialNoise = Float32List(100)..fillRange(0, 100, 0.1);

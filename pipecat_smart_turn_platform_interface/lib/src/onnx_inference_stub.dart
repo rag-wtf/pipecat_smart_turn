@@ -1,5 +1,11 @@
 import 'dart:typed_data';
 
+String? resolveOnnxLibraryPath() => null;
+
+Future<String> extractBundledModel() async {
+  throw UnsupportedError('extractBundledModel is not supported on this platform.');
+}
+
 /// Wraps the ONNX Runtime session for Smart Turn v3.
 class SmartTurnOnnxSession {
   /// Initializes the ONNX Runtime environment and session.

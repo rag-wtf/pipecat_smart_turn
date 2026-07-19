@@ -9,19 +9,21 @@ void main() {
       final result = AudioPreprocessor.prepareInput(shortAudio);
 
       expect(result.length, equals(128000));
-      // First 80,000 samples should be zero (padding)
-      expect(result[0], equals(0.0));
-      expect(result[79999], equals(0.0));
+      // Verify zero-mean and unit-variance
+      var sum = 0.0;
+      for (final s in result) sum += s;
+      expect(sum / 128000, closeTo(0.0, 1e-4));
 
-      // Index 80000 is the FIRST audio sample of the signal, multiplied by fade factor 0/80 = 0.0
-      expect(result[80000], equals(0.0));
+      var variance = 0.0;
+      for (final s in result) {
+        variance += s * s;
+      }
+      expect(variance / 128000, closeTo(1.0, 1e-4));
 
-      // Index 80079 is the LAST fade-in sample (i=79), factor = 79/80 = 0.9875
-      // 0.5 * 0.9875 = 0.49375
-      expect(result[80079], closeTo(0.49375, 1e-6));
-
-      // Index 80080 is the first sample past the fade-in — full amplitude
-      expect(result[80080], closeTo(0.5, 1e-6));
+      // Check left padding implies first elements are equal to each other (since they were all 0s)
+      expect(result[0], equals(result[1000]));
+      // Check the jump happens at 80,000
+      expect(result[79999], isNot(equals(result[80000])));
     });
 
     test('prepareInput crops overlong audio to last 128,000 samples', () {
@@ -32,11 +34,20 @@ void main() {
       final result = AudioPreprocessor.prepareInput(longAudio);
       expect(result.length, equals(128000));
       // Should contain the LAST 128,000 samples.
-      // Offset = 150,000 - 128,000 = 22,000
-      // Index 0 is the start of the signal (after crop),
-      // so it should be zeroed out by the 5ms fade-in.
-      expect(result[0], equals(0.0));
-      expect(result[127999], equals(149999.0));
+
+      // Verify zero-mean and unit-variance
+      var sum = 0.0;
+      for (final s in result) sum += s;
+      expect(sum / 128000, closeTo(0.0, 1e-4));
+
+      var variance = 0.0;
+      for (final s in result) {
+        variance += s * s;
+      }
+      expect(variance / 128000, closeTo(1.0, 1e-4));
+
+      // Since it's monotonically increasing, the normalized values should be increasing
+      expect(result[0] < result[127999], isTrue);
     });
 
     test('int16ToFloat32 conversion', () {
@@ -87,8 +98,8 @@ void main() {
 
     test('computeRms', () {
       final audio = Float32List.fromList([0.5, -0.5, 0.5, -0.5]);
-      // (0.25 * 4) / 4 = 0.25
-      expect(AudioPreprocessor.computeRms(audio), equals(0.25));
+      // (0.25 * 4) / 4 = 0.25 => sqrt(0.25) = 0.5
+      expect(AudioPreprocessor.computeRms(audio), equals(0.5));
       expect(AudioPreprocessor.computeRms(Float32List(0)), 0.0);
     });
 

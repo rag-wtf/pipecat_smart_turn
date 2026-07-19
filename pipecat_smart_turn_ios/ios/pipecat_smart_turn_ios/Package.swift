@@ -11,11 +11,15 @@ let package = Package(
     products: [
         .library(name: "pipecat-smart-turn-ios", targets: ["pipecat_smart_turn_ios"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/microsoft/onnxruntime-swift-package", from: "1.24.2")
+    ],
     targets: [
         .target(
             name: "pipecat_smart_turn_ios",
-            dependencies: [],
+            dependencies: [
+                .product(name: "onnxruntime", package: "onnxruntime-swift-package")
+            ],
             resources: [
                 // TODO: If your plugin requires a privacy manifest
                 // (e.g. if it uses any required reason APIs), update the PrivacyInfo.xcprivacy file

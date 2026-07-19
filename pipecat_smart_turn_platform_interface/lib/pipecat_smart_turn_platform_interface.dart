@@ -1,7 +1,6 @@
 export 'src/audio_buffer.dart';
 export 'src/audio_preprocessor.dart';
 export 'src/exceptions.dart';
-export 'src/math_utils.dart';
 export 'src/method_channel_pipecat_smart_turn.dart';
 export 'src/pipecat_smart_turn_platform.dart';
 export 'src/smart_turn_config.dart';

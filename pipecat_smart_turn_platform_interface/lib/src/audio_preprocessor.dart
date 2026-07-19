@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 /// Handles audio preparation and format conversion for Smart Turn.
@@ -33,15 +34,24 @@ class AudioPreprocessor {
       result.setRange(paddingLength, kMaxSamples, audio);
     }
 
-    // Apply 5ms (80 samples) fade-in to the start of the audio signal
-    final signalStartIdx = (kMaxSamples - audio.length).clamp(0, kMaxSamples);
-    const fadeSamples = 80;
-    for (
-      var i = 0;
-      i < fadeSamples && (signalStartIdx + i) < kMaxSamples;
-      i++
-    ) {
-      result[signalStartIdx + i] *= i / fadeSamples;
+    // Zero-mean / unit-variance normalization (per-utterance)
+    var sum = 0.0;
+    for (var i = 0; i < kMaxSamples; i++) {
+      sum += result[i];
+    }
+    final mean = sum / kMaxSamples;
+
+    var variance = 0.0;
+    for (var i = 0; i < kMaxSamples; i++) {
+      final diff = result[i] - mean;
+      variance += diff * diff;
+    }
+
+    // Whisper uses variance without Bessel's correction, std = sqrt(var / N)
+    final std = math.max(math.sqrt(variance / kMaxSamples), 1e-5);
+
+    for (var i = 0; i < kMaxSamples; i++) {
+      result[i] = (result[i] - mean) / std;
     }
 
     return result;
@@ -70,6 +80,7 @@ class AudioPreprocessor {
   /// By passing [Uint8List.offsetInBytes] and the derived sample count we
   /// ensure only the intended slice is converted.
   static Float32List bytesToFloat32(Uint8List bytes) {
+    assert(bytes.lengthInBytes % 2 == 0, 'bytesToFloat32 expects an even number of bytes');
     final int16Data = bytes.buffer.asInt16List(
       bytes.offsetInBytes,
       bytes.lengthInBytes ~/ 2,
@@ -96,14 +107,13 @@ class AudioPreprocessor {
     return output;
   }
 
-  /// Computes Root Mean Square (RMS) energy of an audio signal.
   static double computeRms(Float32List audio) {
     if (audio.isEmpty) return 0;
     var sumSquares = 0.0;
     for (final sample in audio) {
       sumSquares += sample * sample;
     }
-    return sumSquares / audio.length;
+    return math.sqrt(sumSquares / audio.length);
   }
 
   /// Converts sample count to milliseconds at 16kHz.

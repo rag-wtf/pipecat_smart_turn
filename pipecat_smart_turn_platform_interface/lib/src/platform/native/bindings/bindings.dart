@@ -1,6 +1,7 @@
 // coverage:ignore-file
 import 'dart:ffi';
 import 'dart:io';
+import 'package:pipecat_smart_turn_platform_interface/src/constants.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/onnxruntime_bindings_generated.dart';
 
 /// Resolves the absolute path to the ONNX Runtime shared library for the
@@ -13,7 +14,7 @@ import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindin
 String? resolveOnnxLibraryPath() {
   if (Platform.isLinux) {
     final execDir = File(Platform.resolvedExecutable).parent.path;
-    return '$execDir/lib/libonnxruntime.so.1.24.2';
+    return '$execDir/lib/libonnxruntime.so.$kOnnxRuntimeVersion';
   }
   if (Platform.isWindows) {
     final execDir = File(Platform.resolvedExecutable).parent.path;

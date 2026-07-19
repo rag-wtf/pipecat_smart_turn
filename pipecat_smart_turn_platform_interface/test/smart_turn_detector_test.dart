@@ -24,14 +24,14 @@ class MockSmartTurnOnnxSession implements SmartTurnOnnxSession {
   }
 
   @override
-  Future<(double, double)> run(Float32List audioSamples) async {
+  Future<double> run(Float32List audioSamples) async {
     return runResult;
   }
 
-  (double, double) runResult = (5.0, 0.0);
+  double runResult = 0.0;
 
-  void setRunResult(double incomplete, double complete) {
-    runResult = (incomplete, complete);
+  void setRunResult(double probability) {
+    runResult = probability;
   }
 
   @override
@@ -58,14 +58,14 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
   }
 
   @override
-  Future<(double, double)> predict(Float32List audio) async {
+  Future<double> predict(Float32List audio) async {
     return predictResult;
   }
 
-  (double, double) predictResult = (5.0, 0.0);
+  double predictResult = 0.0;
 
-  void setPredictResult(double incomplete, double complete) {
-    predictResult = (incomplete, complete);
+  void setPredictResult(double probability) {
+    predictResult = probability;
   }
 
   @override
@@ -162,7 +162,7 @@ void main() {
       )..sessionOverride = mockSession;
       await detector.initialize();
 
-      mockSession.setRunResult(0, 10); // High confidence for complete
+      mockSession.setRunResult(1.0); // High confidence for complete
       final result = await detector.predict(Float32List(16000));
 
       expect(result, isNotNull);
@@ -176,7 +176,7 @@ void main() {
       )..isolateOverride = mockIsolate;
       await detector.initialize();
 
-      mockIsolate.setPredictResult(10, 0); // High confidence for incomplete
+      mockIsolate.setPredictResult(0.0); // High confidence for incomplete
       final result = await detector.predict(Float32List(16000));
 
       expect(result, isNotNull);
@@ -211,7 +211,7 @@ void main() {
       // To test backpressure, we need the session.run to be slow.
       // We can use a Completer to control when run returns.
 
-      final completer = Completer<(double, double)>();
+      final completer = Completer<double>();
 
       final slowSession = SlowMockSession(completer);
       detector = SmartTurnDetector(
@@ -231,7 +231,7 @@ void main() {
       expect(result2, isNull);
 
       // Complete first prediction
-      completer.complete((10.0, 0.0));
+      completer.complete(1.0);
       final result1 = await future1;
       expect(result1, isNotNull);
     });
@@ -240,10 +240,10 @@ void main() {
 
 class SlowMockSession extends MockSmartTurnOnnxSession {
   SlowMockSession(this.completer);
-  final Completer<(double, double)> completer;
+  final Completer<double> completer;
 
   @override
-  Future<(double, double)> run(Float32List audioSamples) {
+  Future<double> run(Float32List audioSamples) {
     return completer.future;
   }
 }

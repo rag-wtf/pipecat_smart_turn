@@ -1,12 +1,38 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
+
+import 'package:pipecat_smart_turn_platform_interface/src/constants.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/mel_spectrogram.dart';
-import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart';
+import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart' as ffi_bindings;
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_env.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_session.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_value.dart';
+
+String? resolveOnnxLibraryPath() => ffi_bindings.resolveOnnxLibraryPath();
+
+Future<String> extractBundledModel() async {
+  final dir = await getApplicationSupportDirectory();
+  final file = File('${dir.path}/$kDefaultModelFilename');
+
+  // Extract atomically if it doesn't exist to save I/O over-writes on hot restarts.
+  if (!file.existsSync()) {
+    final byteData = await rootBundle.load(kDefaultModelAssetPath);
+    final tempFile = File('${dir.path}/$kDefaultModelFilename.tmp');
+    await tempFile.writeAsBytes(
+      byteData.buffer.asUint8List(
+        byteData.offsetInBytes,
+        byteData.lengthInBytes,
+      ),
+      flush: true,
+    );
+    await tempFile.rename(file.path);
+  }
+  return file.path;
+}
 
 /// Wraps the ONNX Runtime session for Smart Turn v3.
 class SmartTurnOnnxSession {
@@ -30,7 +56,7 @@ class SmartTurnOnnxSession {
     try {
       // coverage:ignore-start
       // Build the binding from the library path resolved in the main isolate.
-      final binding = openOnnxRuntimeBinding(onnxLibraryPath);
+      final binding = ffi_bindings.openOnnxRuntimeBinding(onnxLibraryPath);
 
       // Initialize (or reuse) the global ONNX Runtime environment.
       OrtEnv.setup(binding).init();
@@ -59,7 +85,7 @@ class SmartTurnOnnxSession {
   ///
   /// [audioSamples] must be exactly 128,000 samples.
   /// Returns raw logits (incompleteLogit, completeLogit).
-  Future<(double, double)> run(Float32List audioSamples) async {
+  Future<double> run(Float32List audioSamples) async {
     if (!_isInitialized || _session == null) {
       throw const SmartTurnNotInitializedException();
     }
@@ -80,15 +106,12 @@ class SmartTurnOnnxSession {
       // Forward pass
       final outputs = _session!.run(runOptions, inputs);
 
-      // Model outputs a single logit tensor 'logits' of shape [batch, 1].
+      // Model outputs a single probability tensor 'logits' of shape [batch, 1].
       final logitsList = outputs[0]?.value as List?;
       if (logitsList == null) {
         throw const SmartTurnInferenceException('Model returned null logits.');
       }
-      final logit = (logitsList[0] as List)[0] as double;
-
-      // Return (-logit, logit) so softmax2(-x, x) == sigmoid(x).
-      final result = (-logit, logit);
+      final probability = (logitsList[0] as List)[0] as double;
 
       // Cleanup native resources
       inputTensor.release();
@@ -97,7 +120,7 @@ class SmartTurnOnnxSession {
         element?.release();
       }
 
-      return result;
+      return probability;
       // coverage:ignore-end
     } on Object catch (e) {
       // coverage:ignore-start

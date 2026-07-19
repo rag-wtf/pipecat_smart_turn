@@ -1,16 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:meta/meta.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/audio_preprocessor.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
-import 'package:pipecat_smart_turn_platform_interface/src/math_utils.dart'; // softmax2
-import 'package:pipecat_smart_turn_platform_interface/src/onnx_inference.dart'; // SmartTurnOnnxSession
-import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart';
+import 'package:pipecat_smart_turn_platform_interface/src/onnx_inference.dart'; // SmartTurnOnnxSession, resolveOnnxLibraryPath, extractBundledModel
 import 'package:pipecat_smart_turn_platform_interface/src/smart_turn_config.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/smart_turn_isolate.dart'; // SmartTurnIsolate
 import 'package:pipecat_smart_turn_platform_interface/src/smart_turn_result.dart';
@@ -37,6 +31,7 @@ class SmartTurnDetector {
   SmartTurnOnnxSession? _session;
   bool _isInitialized = false;
   bool _isProcessing = false;
+  Future<void>? _initFuture;
 
   /// Initializes the detector by loading the ONNX model.
   ///
@@ -46,39 +41,30 @@ class SmartTurnDetector {
   /// Thrown when the model file cannot be loaded or extracted.
   Future<void> initialize() async {
     if (_isInitialized) return;
+    if (_initFuture != null) return _initFuture;
+
+    _initFuture = _doInitialize();
+    try {
+      await _initFuture;
+    } finally {
+      _initFuture = null;
+    }
+  }
+
+  Future<void> _doInitialize() async {
 
     var modelPath = config.customModelPath ?? '';
 
     if (modelPath.isEmpty) {
-      if (kIsWeb) {
-        modelPath =
-            'assets/packages/pipecat_smart_turn_platform_interface/assets/smart-turn-v3.2-cpu.onnx';
-      } else {
+      try {
+        modelPath = await extractBundledModel();
+      } on Object catch (e) {
         // coverage:ignore-start
-        try {
-          final dir = await getApplicationSupportDirectory();
-          final file = File('${dir.path}/smart-turn-v3.2-cpu.onnx');
-          modelPath = file.path;
-
-          // Extract if it doesn't exist to save I/O over-writes on hot restarts.
-          if (!file.existsSync()) {
-            final byteData = await rootBundle.load(
-              'packages/pipecat_smart_turn_platform_interface/assets/smart-turn-v3.2-cpu.onnx',
-            );
-            await file.writeAsBytes(
-              byteData.buffer.asUint8List(
-                byteData.offsetInBytes,
-                byteData.lengthInBytes,
-              ),
-            );
-          }
-        } on Object catch (e) {
-          throw SmartTurnModelLoadException(
-            'Failed to extract bundled ONNX model from assets. '
-            'Verify the asset exists in pubspec.yaml or provide '
-            'a customModelPath. Error: $e',
-          );
-        }
+        throw SmartTurnModelLoadException(
+          'Failed to extract bundled ONNX model from assets. '
+          'Verify the asset exists in pubspec.yaml or provide '
+          'a customModelPath. Error: $e',
+        );
         // coverage:ignore-end
       }
     }
@@ -127,11 +113,9 @@ class SmartTurnDetector {
     try {
       final paddedAudio = AudioPreprocessor.prepareInput(audioSamples);
 
-      final (incompleteLogit, completeLogit) = config.useIsolate
+      final completeProbability = config.useIsolate
           ? await _inferenceIsolate!.predict(paddedAudio)
           : await _session!.run(paddedAudio);
-
-      final (_, completeProbability) = softmax2(incompleteLogit, completeLogit);
 
       return SmartTurnResult(
         isComplete: completeProbability >= config.completionThreshold,
@@ -148,10 +132,17 @@ class SmartTurnDetector {
 
   /// Disposes of the ONNX session or background isolate.
   Future<void> dispose() async {
+    _isInitialized = false; // Prevent new predictions
+
+    // Wait for any ongoing inference to finish to avoid segfaulting
+    // native resources during disposal.
+    while (_isProcessing) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+
     _inferenceIsolate?.kill();
     _inferenceIsolate = null;
     _session?.dispose();
     _session = null;
-    _isInitialized = false;
   }
 }

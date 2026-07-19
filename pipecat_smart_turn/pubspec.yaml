@@ -8,13 +8,38 @@ environment:
   sdk: ^3.11.0
 
 flutter:
-  # No plugin block needed as logic is moved to platform_interface.
+  plugin:
+    platforms:
+      android:
+        default_package: pipecat_smart_turn_android
+      ios:
+        default_package: pipecat_smart_turn_ios
+      linux:
+        default_package: pipecat_smart_turn_linux
+      macos:
+        default_package: pipecat_smart_turn_macos
+      web:
+        default_package: pipecat_smart_turn_web
+      windows:
+        default_package: pipecat_smart_turn_windows
 
 dependencies:
   flutter:
     sdk: flutter
   pipecat_smart_turn_platform_interface:
     path: ../pipecat_smart_turn_platform_interface
+  pipecat_smart_turn_android:
+    path: ../pipecat_smart_turn_android
+  pipecat_smart_turn_ios:
+    path: ../pipecat_smart_turn_ios
+  pipecat_smart_turn_linux:
+    path: ../pipecat_smart_turn_linux
+  pipecat_smart_turn_macos:
+    path: ../pipecat_smart_turn_macos
+  pipecat_smart_turn_web:
+    path: ../pipecat_smart_turn_web
+  pipecat_smart_turn_windows:
+    path: ../pipecat_smart_turn_windows
 
 dev_dependencies:
   flutter_test:

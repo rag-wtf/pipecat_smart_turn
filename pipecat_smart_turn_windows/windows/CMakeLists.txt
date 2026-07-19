@@ -27,7 +27,7 @@ if(EXISTS "${ARM64_LIB_PATH}")
   list(APPEND BUNDLED_LIBS "${ARM64_LIB_PATH}")
 endif()
 
-set(pipecat_smart_turn_bundled_libraries
+set(pipecat_smart_turn_windows_bundled_libraries
   ${BUNDLED_LIBS}
   PARENT_SCOPE
 )
