@@ -28,8 +28,10 @@ class MockSmartTurnOnnxSession implements SmartTurnOnnxSession {
     return runResult;
   }
 
-  double runResult = 0.0;
+  double runResult = 0;
 
+  /// Sets the run result for testing.
+  // ignore: use_setters_to_change_properties
   void setRunResult(double probability) {
     runResult = probability;
   }
@@ -58,12 +60,14 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
   }
 
   @override
-  Future<double> predict(Float32List audio) async {
+  Future<double> predict(Float32List audio, {int timeoutMs = 2000}) async {
     return predictResult;
   }
 
-  double predictResult = 0.0;
+  double predictResult = 0;
 
+  /// Sets the predict result for testing.
+  // ignore: use_setters_to_change_properties
   void setPredictResult(double probability) {
     predictResult = probability;
   }
@@ -162,7 +166,7 @@ void main() {
       )..sessionOverride = mockSession;
       await detector.initialize();
 
-      mockSession.setRunResult(1.0); // High confidence for complete
+      mockSession.setRunResult(1); // High confidence for complete
       final result = await detector.predict(Float32List(16000));
 
       expect(result, isNotNull);
@@ -176,7 +180,7 @@ void main() {
       )..isolateOverride = mockIsolate;
       await detector.initialize();
 
-      mockIsolate.setPredictResult(0.0); // High confidence for incomplete
+      mockIsolate.setPredictResult(0); // High confidence for incomplete
       final result = await detector.predict(Float32List(16000));
 
       expect(result, isNotNull);
@@ -234,6 +238,51 @@ void main() {
       completer.complete(1.0);
       final result1 = await future1;
       expect(result1, isNotNull);
+    });
+
+    test('dispose waits for native inference after timeout', () async {
+      final nativeCompleter = Completer<double>();
+      final slowSession = SlowMockSession(nativeCompleter);
+
+      detector = SmartTurnDetector(
+        config: const SmartTurnConfig(
+          customModelPath: 'model.onnx',
+          useIsolate: false,
+          inferenceTimeoutMs: 50,
+        ),
+      )..sessionOverride = slowSession;
+
+      await detector.initialize();
+
+      // Start a prediction that will time out
+      await expectLater(
+        detector.predict(Float32List(16000)),
+        throwsA(isA<SmartTurnInferenceException>()),
+      );
+
+      // Give the timeout a chance to fire
+      await Future<void>.delayed(
+        const Duration(milliseconds: 100),
+      );
+
+      // Start disposing — must wait for native future
+      final disposeFuture = detector.dispose();
+
+      // Verify dispose hasn't completed yet
+      var disposeCompleted = false;
+      unawaited(
+        disposeFuture.then((_) => disposeCompleted = true),
+      );
+      await Future<void>.delayed(
+        const Duration(milliseconds: 50),
+      );
+      expect(disposeCompleted, isFalse);
+
+      // Now let the native call complete
+      nativeCompleter.complete(0.5);
+      await disposeFuture;
+      expect(disposeCompleted, isTrue);
+      expect(slowSession.disposeCalled, isTrue);
     });
   });
 }

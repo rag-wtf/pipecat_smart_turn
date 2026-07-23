@@ -29,6 +29,7 @@ class SmartTurnDetector {
 
   SmartTurnIsolate? _inferenceIsolate;
   SmartTurnOnnxSession? _session;
+  Future<double>? _nativeInferenceFuture;
   bool _isInitialized = false;
   bool _isProcessing = false;
   Future<void>? _initFuture;
@@ -52,7 +53,6 @@ class SmartTurnDetector {
   }
 
   Future<void> _doInitialize() async {
-
     var modelPath = config.customModelPath ?? '';
 
     if (modelPath.isEmpty) {
@@ -105,7 +105,12 @@ class SmartTurnDetector {
     if (!_isInitialized) throw const SmartTurnNotInitializedException();
 
     // Backpressure: drop this request if the inference thread is still busy.
-    if (_isProcessing) return null;
+    if (_isProcessing) {
+      config.logger?.call(
+        'SmartTurnDetector: backpressure drop - inference thread busy',
+      );
+      return null;
+    }
     _isProcessing = true;
 
     final stopwatch = Stopwatch()..start();
@@ -114,13 +119,22 @@ class SmartTurnDetector {
       final paddedAudio = AudioPreprocessor.prepareInput(audioSamples);
 
       final completeProbability = config.useIsolate
-          ? await _inferenceIsolate!.predict(paddedAudio)
-          : await _session!.run(paddedAudio);
+          ? await _inferenceIsolate!.predict(
+              paddedAudio,
+              timeoutMs: config.inferenceTimeoutMs,
+            )
+          : await _runNativeWithTimeout(paddedAudio);
+
+      final latency = stopwatch.elapsedMilliseconds;
+      config.logger?.call(
+        'SmartTurnDetector: prediction complete in ${latency}ms '
+        '(prob: ${completeProbability.toStringAsFixed(3)})',
+      );
 
       return SmartTurnResult(
         isComplete: completeProbability >= config.completionThreshold,
         confidence: completeProbability,
-        latencyMs: stopwatch.elapsedMilliseconds,
+        latencyMs: latency,
         audioLengthMs: AudioPreprocessor.sampleCountToMs(
           audioSamples.length,
         ).toDouble(),
@@ -130,12 +144,44 @@ class SmartTurnDetector {
     }
   }
 
+  Future<double> _runNativeWithTimeout(Float32List audio) async {
+    final nativeFuture = _session!.run(audio);
+    _nativeInferenceFuture = nativeFuture;
+    unawaited(
+      nativeFuture
+          .whenComplete(() {
+            if (_nativeInferenceFuture == nativeFuture) {
+              _nativeInferenceFuture = null;
+            }
+          })
+          .catchError((_) => 0.0),
+    );
+    return nativeFuture.timeout(
+      Duration(milliseconds: config.inferenceTimeoutMs),
+      onTimeout: () => throw const SmartTurnInferenceException(
+        'Inference timed out',
+      ),
+    );
+  }
+
   /// Disposes of the ONNX session or background isolate.
   Future<void> dispose() async {
     _isInitialized = false; // Prevent new predictions
 
-    // Wait for any ongoing inference to finish to avoid segfaulting
-    // native resources during disposal.
+    // Await the actual native FFI future if one is in progress.
+    // Dart's .timeout() does not cancel the underlying synchronous
+    // FFI call, so we must wait for it to complete before releasing
+    // the native OrtSession to avoid a segfault.
+    final pendingNative = _nativeInferenceFuture;
+    if (pendingNative != null) {
+      try {
+        await pendingNative;
+      } on Object catch (_) {
+        // Ignore — we only need the FFI call to finish.
+      }
+    }
+
+    // Wait for any ongoing predict() frame to finish Dart work.
     while (_isProcessing) {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
