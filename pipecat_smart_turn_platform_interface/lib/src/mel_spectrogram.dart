@@ -6,15 +6,19 @@ import 'dart:typed_data';
 /// Parameters match the Smart Turn v3.x model preprocessing:
 /// - Sample rate: 16 kHz
 /// - Window size (n_fft): 400 samples (25 ms)
-/// - FFT size: 512 (next power-of-2 ≥ n_fft, for efficiency)
+/// - FFT size: 400 (matches n_fft for Whisper parity)
 /// - Hop length: 160 samples (10 ms)
 /// - Mel bands (n_mels): 80
 /// - Centering: true (reflects n_fft/2 = 200 samples on each side)
 ///
-/// For 128,000 input samples this produces a flat [Float32List] of length
-/// 80 × 800 = 64,000 values, logically shaped [80, 800].
+/// For 128,000 input samples this produces a flat [Float32List] of
+/// length 80 x 800 = 64,000 values, logically shaped [80, 800].
 ///
-/// Uses a pure-Dart radix-2 in-place FFT (no Uint64List — Web-compatible).
+/// Uses a pure-Dart direct DFT with precomputed trigonometric tables.
+/// A radix-2 FFT is not applicable because kFftSize (400) is not a
+/// power of two. The precomputed cos/sin tables reduce per-frame
+/// cost to ~201 x 400 multiply-adds, which benchmarks within
+/// latency budgets on mobile devices for the 800-frame workload.
 class MelSpectrogram {
   // coverage:ignore-start
   MelSpectrogram._();
@@ -148,7 +152,11 @@ class MelSpectrogram {
     return table;
   }
 
-  static void _computeDft(Float64List real, Float64List outReal, Float64List outImag) {
+  static void _computeDft(
+    Float64List real,
+    Float64List outReal,
+    Float64List outImag,
+  ) {
     for (var k = 0; k < kNFreqs; k++) {
       var sumRe = 0.0;
       var sumIm = 0.0;
@@ -178,7 +186,7 @@ class MelSpectrogram {
     const fMax = 8000.0; // Nyquist
     const minLogHz = 1000.0;
     const fSp = 200.0 / 3.0; // 66.6666666...
-    final minLogMel = (minLogHz - fMin) / fSp;
+    const minLogMel = (minLogHz - fMin) / fSp;
     final logStep = math.log(6.4) / 27.0;
 
     double hzToMel(double hz) {
@@ -223,7 +231,7 @@ class MelSpectrogram {
       for (var k = 0; k < kNFreqs; k++) {
         final hz = fftFreqs[k];
         if (leftHz <= hz && hz <= rightHz) {
-          double weight = 0.0;
+          var weight = 0.0;
           if (hz <= centerHz) {
             weight = (hz - leftHz) / (centerHz - leftHz);
           } else {
