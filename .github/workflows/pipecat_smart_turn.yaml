@@ -9,12 +9,26 @@ on:
     paths:
       - ".github/workflows/pipecat_smart_turn.yaml"
       - "pipecat_smart_turn/**"
+      - "pipecat_smart_turn_platform_interface/**"
+      - "pipecat_smart_turn_android/**"
+      - "pipecat_smart_turn_ios/**"
+      - "pipecat_smart_turn_linux/**"
+      - "pipecat_smart_turn_macos/**"
+      - "pipecat_smart_turn_web/**"
+      - "pipecat_smart_turn_windows/**"
   push:
     branches:
       - main
     paths:
       - ".github/workflows/pipecat_smart_turn.yaml"
       - "pipecat_smart_turn/**"
+      - "pipecat_smart_turn_platform_interface/**"
+      - "pipecat_smart_turn_android/**"
+      - "pipecat_smart_turn_ios/**"
+      - "pipecat_smart_turn_linux/**"
+      - "pipecat_smart_turn_macos/**"
+      - "pipecat_smart_turn_web/**"
+      - "pipecat_smart_turn_windows/**"
 
 jobs:
   spell-check:
