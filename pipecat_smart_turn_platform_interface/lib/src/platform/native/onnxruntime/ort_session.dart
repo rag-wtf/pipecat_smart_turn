@@ -165,72 +165,96 @@ class OrtSession {
     final inputLength = inputs.length;
     final inputNamePtrs = calloc<ffi.Pointer<ffi.Char>>(inputLength);
     final inputPtrs = calloc<ffi.Pointer<bg.OrtValue>>(inputLength);
-    var i = 0;
-    for (final entry in inputs.entries) {
-      inputNamePtrs[i] = entry.key.toNativeUtf8().cast<ffi.Char>();
-      inputPtrs[i] = entry.value.ptr;
-      ++i;
-    }
+    var inputNamesAllocated = 0;
+
     outputNames ??= _outputNames;
     final outputLength = outputNames.length;
     final outputNamePtrs = calloc<ffi.Pointer<ffi.Char>>(outputLength);
     final outputPtrs = calloc<ffi.Pointer<bg.OrtValue>>(outputLength);
-    for (var i = 0; i < outputLength; ++i) {
-      outputNamePtrs[i] = outputNames[i].toNativeUtf8().cast<ffi.Char>();
-      outputPtrs[i] = ffi.nullptr;
-    }
-    var statusPtr =
-        OrtEnv.instance.ortApiPtr.ref.Run
-            .asFunction<
-              bg.OrtStatusPtr Function(
-                ffi.Pointer<bg.OrtSession>,
-                ffi.Pointer<bg.OrtRunOptions>,
-                ffi.Pointer<ffi.Pointer<ffi.Char>>,
-                ffi.Pointer<ffi.Pointer<bg.OrtValue>>,
-                int,
-                ffi.Pointer<ffi.Pointer<ffi.Char>>,
-                int,
-                ffi.Pointer<ffi.Pointer<bg.OrtValue>>,
-              )
-            >()(
-          _ptr,
-          runOptions._ptr,
-          inputNamePtrs,
-          inputPtrs,
-          inputLength,
-          outputNamePtrs,
-          outputLength,
-          outputPtrs,
-        );
-    OrtStatus.checkOrtStatus(statusPtr);
-    final outputs = List<OrtValue?>.generate(outputLength, (index) {
-      final ortValuePtr = outputPtrs[index];
-      final onnxTypePtr = calloc<ffi.Int32>();
-      statusPtr = OrtEnv.instance.ortApiPtr.ref.GetValueType
-          .asFunction<
-            bg.OrtStatusPtr Function(
-              ffi.Pointer<bg.OrtValue>,
-              ffi.Pointer<ffi.UnsignedInt>,
-            )
-          >()(ortValuePtr, onnxTypePtr.cast());
-      OrtStatus.checkOrtStatus(statusPtr);
-      final onnxType = ONNXType.fromValue(onnxTypePtr.value);
-      calloc.free(onnxTypePtr);
-      if (onnxType == ONNXType.tensor) {
-        return OrtValueTensor(ortValuePtr);
-      } else {
-        throw Exception(
-          'Unexpected output type: $onnxType. '
-          'ONNX model only produces tensors.',
-        );
+    var outputNamesAllocated = 0;
+
+    try {
+      var i = 0;
+      for (final entry in inputs.entries) {
+        inputNamePtrs[i] = entry.key.toNativeUtf8().cast<ffi.Char>();
+        inputPtrs[i] = entry.value.ptr;
+        inputNamesAllocated = ++i;
       }
-    });
-    calloc
-      ..free(inputNamePtrs)
-      ..free(inputPtrs)
-      ..free(outputNamePtrs)
-      ..free(outputPtrs);
-    return outputs;
+
+      for (var j = 0; j < outputLength; j++) {
+        outputNamePtrs[j] = outputNames[j].toNativeUtf8().cast<ffi.Char>();
+        outputPtrs[j] = ffi.nullptr;
+        outputNamesAllocated = j + 1;
+      }
+
+      final statusPtr =
+          OrtEnv.instance.ortApiPtr.ref.Run
+              .asFunction<
+                bg.OrtStatusPtr Function(
+                  ffi.Pointer<bg.OrtSession>,
+                  ffi.Pointer<bg.OrtRunOptions>,
+                  ffi.Pointer<ffi.Pointer<ffi.Char>>,
+                  ffi.Pointer<ffi.Pointer<bg.OrtValue>>,
+                  int,
+                  ffi.Pointer<ffi.Pointer<ffi.Char>>,
+                  int,
+                  ffi.Pointer<ffi.Pointer<bg.OrtValue>>,
+                )
+              >()(
+            _ptr,
+            runOptions._ptr,
+            inputNamePtrs,
+            inputPtrs,
+            inputLength,
+            outputNamePtrs,
+            outputLength,
+            outputPtrs,
+          );
+      OrtStatus.checkOrtStatus(statusPtr);
+
+      return List<OrtValue?>.generate(
+        outputLength,
+        (index) {
+          final ortValuePtr = outputPtrs[index];
+          final onnxTypePtr = calloc<ffi.Int32>();
+          try {
+            final typeStatusPtr = OrtEnv.instance.ortApiPtr.ref.GetValueType
+                .asFunction<
+                  bg.OrtStatusPtr Function(
+                    ffi.Pointer<bg.OrtValue>,
+                    ffi.Pointer<ffi.UnsignedInt>,
+                  )
+                >()(ortValuePtr, onnxTypePtr.cast());
+            OrtStatus.checkOrtStatus(typeStatusPtr);
+            final onnxType = ONNXType.fromValue(onnxTypePtr.value);
+            if (onnxType == ONNXType.tensor) {
+              return OrtValueTensor(ortValuePtr);
+            } else {
+              throw Exception(
+                'Unexpected output type: $onnxType. '
+                'ONNX model only produces tensors.',
+              );
+            }
+          } finally {
+            calloc.free(onnxTypePtr);
+          }
+        },
+      );
+    } finally {
+      // Free individual toNativeUtf8() strings.
+      for (var k = 0; k < inputNamesAllocated; k++) {
+        calloc.free(inputNamePtrs[k]);
+      }
+      for (var k = 0; k < outputNamesAllocated; k++) {
+        calloc.free(outputNamePtrs[k]);
+      }
+      // Free pointer arrays.
+      calloc
+        ..free(inputNamePtrs)
+        ..free(inputPtrs)
+        ..free(outputNamePtrs)
+        ..free(outputPtrs);
+    }
   }
 
   /// Releases the session.
@@ -345,8 +369,7 @@ enum GraphOptimizationLevel {
   ortEnableExtended(2),
 
   /// Enable all optimizations.
-  ortEnableAll(99)
-  ;
+  ortEnableAll(99);
 
   const GraphOptimizationLevel(this.value);
 
