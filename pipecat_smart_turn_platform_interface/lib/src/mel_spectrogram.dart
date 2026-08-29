@@ -58,12 +58,42 @@ class MelSpectrogram {
       _buildSparseMelFilters();
 
   // Precomputed Cooley-Tukey 16x25 FFT tables
-  static final Float64List _cos16 = _buildCos16();
-  static final Float64List _sin16 = _buildSin16();
-  static final Float64List _twiddleCos = _buildTwiddleCos();
-  static final Float64List _twiddleSin = _buildTwiddleSin();
-  static final Float64List _cos25 = _buildCos25();
-  static final Float64List _sin25 = _buildSin25();
+  static final Float64List _cos16 = _buildTrigMatrix(
+    kFftRadix1,
+    kFftRadix1,
+    kFftRadix1,
+    isSin: false,
+  );
+  static final Float64List _sin16 = _buildTrigMatrix(
+    kFftRadix1,
+    kFftRadix1,
+    kFftRadix1,
+    isSin: true,
+  );
+  static final Float64List _twiddleCos = _buildTrigMatrix(
+    kFftRadix1,
+    kFftRadix2,
+    kFftSize,
+    isSin: false,
+  );
+  static final Float64List _twiddleSin = _buildTrigMatrix(
+    kFftRadix1,
+    kFftRadix2,
+    kFftSize,
+    isSin: true,
+  );
+  static final Float64List _cos25 = _buildTrigMatrix(
+    kFftRadix2,
+    kFftRadix2,
+    kFftRadix2,
+    isSin: false,
+  );
+  static final Float64List _sin25 = _buildTrigMatrix(
+    kFftRadix2,
+    kFftRadix2,
+    kFftRadix2,
+    isSin: true,
+  );
 
   // -------------------------------------------------------------------------
   // Public API
@@ -173,61 +203,18 @@ class MelSpectrogram {
   // Private helpers
   // -------------------------------------------------------------------------
 
-  static Float64List _buildCos16() {
-    final table = Float64List(16 * 16);
-    for (var k = 0; k < 16; k++) {
-      for (var n = 0; n < 16; n++) {
-        table[k * 16 + n] = math.cos(-2 * math.pi * k * n / 16);
-      }
-    }
-    return table;
-  }
-
-  static Float64List _buildSin16() {
-    final table = Float64List(16 * 16);
-    for (var k = 0; k < 16; k++) {
-      for (var n = 0; n < 16; n++) {
-        table[k * 16 + n] = math.sin(-2 * math.pi * k * n / 16);
-      }
-    }
-    return table;
-  }
-
-  static Float64List _buildTwiddleCos() {
-    final table = Float64List(16 * 25);
-    for (var k1 = 0; k1 < 16; k1++) {
-      for (var n2 = 0; n2 < 25; n2++) {
-        table[k1 * 25 + n2] = math.cos(-2 * math.pi * k1 * n2 / kFftSize);
-      }
-    }
-    return table;
-  }
-
-  static Float64List _buildTwiddleSin() {
-    final table = Float64List(16 * 25);
-    for (var k1 = 0; k1 < 16; k1++) {
-      for (var n2 = 0; n2 < 25; n2++) {
-        table[k1 * 25 + n2] = math.sin(-2 * math.pi * k1 * n2 / kFftSize);
-      }
-    }
-    return table;
-  }
-
-  static Float64List _buildCos25() {
-    final table = Float64List(25 * 25);
-    for (var k = 0; k < 25; k++) {
-      for (var n = 0; n < 25; n++) {
-        table[k * 25 + n] = math.cos(-2 * math.pi * k * n / 25);
-      }
-    }
-    return table;
-  }
-
-  static Float64List _buildSin25() {
-    final table = Float64List(25 * 25);
-    for (var k = 0; k < 25; k++) {
-      for (var n = 0; n < 25; n++) {
-        table[k * 25 + n] = math.sin(-2 * math.pi * k * n / 25);
+  static Float64List _buildTrigMatrix(
+    int rows,
+    int cols,
+    int period, {
+    required bool isSin,
+  }) {
+    final table = Float64List(rows * cols);
+    final factor = -2.0 * math.pi / period;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        final angle = factor * r * c;
+        table[r * cols + c] = isSin ? math.sin(angle) : math.cos(angle);
       }
     }
     return table;

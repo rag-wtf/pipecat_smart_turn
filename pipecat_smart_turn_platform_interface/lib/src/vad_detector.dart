@@ -38,7 +38,6 @@ class EnergyVad {
 
   static const double _kNoiseFloorUpAlpha = 0.98;
   static const double _kNoiseFloorUpBeta = 0.02;
-  static const int _kContinuousSpeechFramesBeforeFloorUpdate = 20;
 
   /// The multiplier over noise floor to consider signal as speech.
   final double silenceThreshold;
@@ -60,8 +59,6 @@ class EnergyVad {
   int _warmupCount = 0;
   bool _isSpeaking = false;
 
-  int _speechFrames = 0;
-
   /// Current estimated noise floor RMS.
   double get noiseFloor => _noiseFloor;
 
@@ -80,7 +77,7 @@ class EnergyVad {
       return VadState.silence;
     }
 
-    // Dynamic noise floor adaptation
+    // Dynamic noise floor adaptation during non-speech frames
     if (!_isSpeaking) {
       if (frameRms < _noiseFloor * 1.5) {
         // Fast downward / close-ambient tracking
@@ -88,17 +85,7 @@ class EnergyVad {
             (_noiseFloor * noiseFloorWeight) +
             (frameRms * (1.0 - noiseFloorWeight));
       } else {
-        // Upward adaptation for rising ambient noise
-        _noiseFloor =
-            (_noiseFloor * _kNoiseFloorUpAlpha) +
-            (frameRms * _kNoiseFloorUpBeta);
-      }
-    } else {
-      // If continuous high energy persists without pauses (e.g. steady
-      // room noise rather than speech), slowly adapt the floor upward to
-      // avoid permanent lockup.
-      _speechFrames++;
-      if (_speechFrames > _kContinuousSpeechFramesBeforeFloorUpdate) {
+        // Slow upward adaptation for rising ambient noise
         _noiseFloor =
             (_noiseFloor * _kNoiseFloorUpAlpha) +
             (frameRms * _kNoiseFloorUpBeta);
@@ -111,12 +98,10 @@ class EnergyVad {
       _silenceCounter = 0;
       if (!_isSpeaking) {
         _isSpeaking = true;
-        _speechFrames = 1;
         return VadState.speechStart;
       }
       return VadState.speech;
     } else {
-      _speechFrames = 0;
       if (_isSpeaking) {
         _silenceCounter++;
         if (_silenceCounter >= silenceGraceFrames) {
@@ -134,7 +119,6 @@ class EnergyVad {
   void reset({double? newNoiseFloor}) {
     _silenceCounter = 0;
     _isSpeaking = false;
-    _speechFrames = 0;
     if (newNoiseFloor != null) {
       _noiseFloor = newNoiseFloor;
       _warmupCount = warmupFrames;

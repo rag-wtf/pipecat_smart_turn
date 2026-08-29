@@ -3,7 +3,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'pipecat_smart_turn_macos'
-  s.version          = '0.0.1'
+  s.version          = '0.1.0+1'
   s.summary          = 'A macOS implementation of the pipecat_smart_turn plugin.'
   s.description      = <<-DESC
   A macOS implementation of the pipecat_smart_turn plugin.
