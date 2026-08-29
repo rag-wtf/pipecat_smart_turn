@@ -1,8 +1,7 @@
 name: pipecat_smart_turn_platform_interface
 description: A common platform interface for the pipecat_smart_turn plugin.
 version: 0.1.0+1
-
-
+publish_to: none
 environment:
   sdk: ^3.11.0
 

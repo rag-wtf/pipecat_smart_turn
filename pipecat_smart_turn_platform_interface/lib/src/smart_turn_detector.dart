@@ -53,9 +53,42 @@ class SmartTurnDetector {
   }
 
   Future<void> _doInitialize() async {
+    // Point-of-use validation (works in release mode where asserts are off)
+    if (config.completionThreshold < 0.0 || config.completionThreshold > 1.0) {
+      throw ArgumentError.value(
+        config.completionThreshold,
+        'completionThreshold',
+        'completionThreshold must be between 0.0 and 1.0',
+      );
+    }
+    if (config.maxAudioSeconds <= 0.0 || config.maxAudioSeconds > 8.0) {
+      throw ArgumentError.value(
+        config.maxAudioSeconds,
+        'maxAudioSeconds',
+        'maxAudioSeconds must be between 0.0 and 8.0',
+      );
+    }
+    if (config.cpuThreadCount < 1) {
+      throw ArgumentError.value(
+        config.cpuThreadCount,
+        'cpuThreadCount',
+        'cpuThreadCount must be at least 1',
+      );
+    }
+    if (config.inferenceTimeoutMs <= 0) {
+      throw ArgumentError.value(
+        config.inferenceTimeoutMs,
+        'inferenceTimeoutMs',
+        'inferenceTimeoutMs must be positive',
+      );
+    }
+
     var modelPath = config.customModelPath ?? '';
 
     if (modelPath.isEmpty) {
+      config.logger?.call(
+        'SmartTurnDetector: extracting bundled ONNX model',
+      );
       try {
         modelPath = await extractBundledModel();
       } on Object catch (e) {
@@ -73,6 +106,11 @@ class SmartTurnDetector {
     // Platform.resolvedExecutable correctly points to the app bundle.
     // This is then passed into session/isolate so compute() workers get it.
     final onnxLibraryPath = resolveOnnxLibraryPath();
+    config.logger?.call(
+      'SmartTurnDetector: initializing session with model=$modelPath, '
+      'useIsolate=${config.useIsolate}, threads=${config.cpuThreadCount}, '
+      'libPath=$onnxLibraryPath',
+    );
 
     if (config.useIsolate) {
       _inferenceIsolate = isolateOverride ?? SmartTurnIsolate();
@@ -186,9 +224,10 @@ class SmartTurnDetector {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
 
-    _inferenceIsolate?.kill();
+    await _inferenceIsolate?.kill();
     _inferenceIsolate = null;
     _session?.dispose();
     _session = null;
+    config.logger?.call('SmartTurnDetector: disposed');
   }
 }

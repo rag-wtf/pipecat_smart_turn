@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   A macOS implementation of the pipecat_smart_turn plugin.
                        DESC
   s.homepage         = 'https://rag.wtf'
-  s.license          = { :type => 'MIT', :file => '../LICENSE' }
+  s.license          = { :type => 'BSD-2-Clause', :file => '../LICENSE' }
   s.author           = { 'limcheekin' => 'limcheekin@vobject.com' }
   s.source           = { :path => '.' }
   s.source_files = 'pipecat_smart_turn_macos/Sources/**/*.swift'

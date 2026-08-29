@@ -18,12 +18,16 @@ class SmartTurnOnnxSession {
     int cpuThreadCount = 1,
     String? onnxLibraryPath,
   }) async {
-    throw UnsupportedError('SmartTurnOnnxSession is not supported on the web.');
+    throw UnsupportedError(
+      'SmartTurnOnnxSession is not supported on this platform.',
+    );
   }
 
   /// Executes a single forward pass inference.
   Future<double> run(Float32List audioSamples) async {
-    throw UnsupportedError('SmartTurnOnnxSession is not supported on the web.');
+    throw UnsupportedError(
+      'SmartTurnOnnxSession is not supported on this platform.',
+    );
   }
 
   /// Releases ONNX Runtime session and environment resources.

@@ -1,16 +1,25 @@
 import 'dart:typed_data';
 import 'package:pipecat_smart_turn_platform_interface/src/audio_preprocessor.dart';
 
-/// A zero-allocation circular ring buffer for storing recent audio context.
+/// A circular ring buffer for storing recent audio context.
 ///
 /// Designed to hold up to the specified duration of 16kHz audio. When the
 /// buffer is full, new samples evict the oldest samples.
 class AudioBuffer {
   /// Creates an [AudioBuffer] that holds up to [maxSeconds] of audio.
   AudioBuffer({double maxSeconds = 8.0})
-    : maxSamples = (maxSeconds * AudioPreprocessor.kSampleRate).toInt(),
+    : assert(maxSeconds > 0.0, 'maxSeconds must be greater than zero'),
+      maxSamples = maxSeconds > 0.0
+          ? (maxSeconds * AudioPreprocessor.kSampleRate).toInt()
+          : throw ArgumentError.value(
+              maxSeconds,
+              'maxSeconds',
+              'maxSeconds must be greater than zero',
+            ),
       _buffer = Float32List(
-        (maxSeconds * AudioPreprocessor.kSampleRate).toInt(),
+        maxSeconds > 0.0
+            ? (maxSeconds * AudioPreprocessor.kSampleRate).toInt()
+            : 0,
       );
 
   /// The maximum number of samples the buffer can hold.

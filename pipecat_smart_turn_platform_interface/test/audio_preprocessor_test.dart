@@ -102,6 +102,54 @@ void main() {
       expect(output[2], 7.0);
     });
 
+    test(
+      'bytesToFloat32 conversion with unaligned offset in larger buffer',
+      () {
+        final bigBuffer = Uint8List.fromList([
+          0xAA, // Unaligned byte at offset 0
+          0x00, 0x80, // -32768 at offset 1
+          0x00, 0x00, // 0 at offset 3
+          0xFF, 0x7F, // 32767 at offset 5
+        ]);
+        final view = Uint8List.sublistView(bigBuffer, 1, 7);
+        expect(view.offsetInBytes, equals(1));
+        expect(view.lengthInBytes, equals(6));
+
+        final output = AudioPreprocessor.bytesToFloat32(view);
+        expect(output.length, 3);
+        expect(output[0], equals(-1.0));
+        expect(output[1], equals(0.0));
+        expect(output[2], closeTo(0.999969, 0.0001));
+      },
+    );
+
+    test('bytesToFloat32 throws on odd byte length', () {
+      final oddBytes = Uint8List.fromList([0x00, 0x80, 0x00]);
+      expect(
+        () => AudioPreprocessor.bytesToFloat32(oddBytes),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('stereoToMono throws on odd sample length', () {
+      final oddStereo = Float32List.fromList([1.0, 0.0, 0.5]);
+      expect(
+        () => AudioPreprocessor.stereoToMono(oddStereo),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('prepareInput returns all zeros for digital silence without NaN', () {
+      final silence = Float32List(128000);
+      final result = AudioPreprocessor.prepareInput(silence);
+      expect(result.length, equals(128000));
+      for (final sample in result) {
+        expect(sample, equals(0.0));
+        expect(sample.isNaN, isFalse);
+        expect(sample.isInfinite, isFalse);
+      }
+    });
+
     test('computeRms', () {
       final audio = Float32List.fromList([0.5, -0.5, 0.5, -0.5]);
       // (0.25 * 4) / 4 = 0.25 => sqrt(0.25) = 0.5

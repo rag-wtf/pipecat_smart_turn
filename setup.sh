@@ -12,18 +12,20 @@ fi
 # It is intended to be sourced, e.g., `source setup.sh`, so that
 # the environment variables are set in the current shell.
 
-set -e
-
 echo "--- Starting Environment Setup ---"
 
-# --- Install Dart SDK ---
-echo "Installing Dart SDK..."
-sudo apt-get update
-sudo apt-get install -y apt-transport-https wget
-wget -qO- https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-sudo sh -c 'wget -qO- https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_stable.list > /etc/apt/sources.list.d/dart_stable.list'
-sudo apt-get update
-sudo apt-get install -y dart
+# --- Check Dart SDK ---
+if ! command -v dart &> /dev/null; then
+    echo "Installing Dart SDK..."
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https wget gpg
+    wget -qO- https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/dart.gpg --yes
+    echo 'deb [signed-by=/usr/share/keyrings/dart.gpg] https://storage.googleapis.com/download.dartlang.org/linux/debian stable main' | sudo tee /etc/apt/sources.list.d/dart_stable.list
+    sudo apt-get update
+    sudo apt-get install -y dart
+else
+    echo "Dart SDK already installed: $(dart --version)"
+fi
 
 # --- Configure Environment ---
 echo "Configuring environment variables..."

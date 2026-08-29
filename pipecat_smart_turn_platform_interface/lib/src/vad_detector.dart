@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:pipecat_smart_turn_platform_interface/src/audio_preprocessor.dart';
 
@@ -31,7 +32,9 @@ class EnergyVad {
     this.silenceThreshold = 2.0, // multiplier over noise floor
     this.noiseFloorWeight = 0.98,
     this.silenceGraceFrames = 3,
-  });
+    this.warmupFrames = 0,
+    this.initialNoiseFloor = 0.001,
+  }) : _noiseFloor = initialNoiseFloor;
 
   /// The multiplier over noise floor to consider signal as speech.
   final double silenceThreshold;
@@ -42,22 +45,46 @@ class EnergyVad {
   /// The number of silent frames to wait before declaring silence.
   final int silenceGraceFrames;
 
-  /// The initial noise floor estimate is set to a low ambient RMS level
-  /// (0.001). The VAD requires a brief warm-up period to adapt this floor to
-  /// the actual environment.
-  double _noiseFloor = 0.001; // Initial floor estimate
+  /// Number of initial frames used to warm up and seed the noise floor.
+  final int warmupFrames;
+
+  /// Initial noise floor seed.
+  final double initialNoiseFloor;
+
+  double _noiseFloor;
   int _silenceCounter = 0;
+  int _warmupCount = 0;
   bool _isSpeaking = false;
+
+  /// Current estimated noise floor RMS.
+  double get noiseFloor => _noiseFloor;
 
   /// Processes a new audio frame and returns the detected VAD state.
   VadState process(Float32List frame) {
     final frameRms = AudioPreprocessor.computeRms(frame);
 
-    // Update noise floor EMA during silence
-    if (frameRms < _noiseFloor * 1.5) {
-      _noiseFloor =
-          (_noiseFloor * noiseFloorWeight) +
-          (frameRms * (1.0 - noiseFloorWeight));
+    // Warm-up phase: seed noise floor directly from ambient frames
+    if (_warmupCount < warmupFrames) {
+      _warmupCount++;
+      if (_warmupCount == 1) {
+        _noiseFloor = math.max(frameRms, 0.0001);
+      } else {
+        _noiseFloor = (_noiseFloor * 0.6) + (math.max(frameRms, 0.0001) * 0.4);
+      }
+      return VadState.silence;
+    }
+
+    // Dynamic noise floor adaptation during non-speech (asymmetric EMA)
+    if (!_isSpeaking) {
+      if (frameRms < _noiseFloor * 1.5) {
+        // Fast downward / close-ambient tracking
+        _noiseFloor =
+            (_noiseFloor * noiseFloorWeight) +
+            (frameRms * (1.0 - noiseFloorWeight));
+      } else {
+        // Slow upward adaptation for rising ambient noise
+        _noiseFloor = (_noiseFloor * 0.98) + (frameRms * 0.02);
+      }
     }
 
     final isHighEnergy = frameRms > (_noiseFloor * silenceThreshold);
@@ -89,6 +116,10 @@ class EnergyVad {
     _isSpeaking = false;
     if (newNoiseFloor != null) {
       _noiseFloor = newNoiseFloor;
+      _warmupCount = warmupFrames;
+    } else {
+      _warmupCount = 0;
+      _noiseFloor = initialNoiseFloor;
     }
   }
 }

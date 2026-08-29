@@ -73,7 +73,7 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
   }
 
   @override
-  void kill() {
+  Future<void> kill() async {
     killCalled = true;
   }
 }
@@ -283,6 +283,27 @@ void main() {
       await disposeFuture;
       expect(disposeCompleted, isTrue);
       expect(slowSession.disposeCalled, isTrue);
+    });
+
+    test('invokes logger on lifecycle and inference events', () async {
+      final logs = <String>[];
+      detector = SmartTurnDetector(
+        config: SmartTurnConfig(
+          customModelPath: 'model.onnx',
+          useIsolate: false,
+          logger: logs.add,
+        ),
+      )..sessionOverride = mockSession;
+
+      await detector.initialize();
+      expect(logs.any((l) => l.contains('initializing session')), isTrue);
+
+      final result = await detector.predict(Float32List(16000));
+      expect(result, isNotNull);
+      expect(logs.any((l) => l.contains('prediction complete in')), isTrue);
+
+      await detector.dispose();
+      expect(logs.any((l) => l.contains('disposed')), isTrue);
     });
   });
 }

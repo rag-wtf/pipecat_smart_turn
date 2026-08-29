@@ -16,11 +16,12 @@ class OrtEnv {
 
   /// The singleton instance of [OrtEnv].
   static OrtEnv get instance {
-    assert(
-      _instance != null,
-      'OrtEnv has not been initialized. '
-      'Call OrtEnv.initialize(binding) before accessing OrtEnv.instance.',
-    );
+    if (_instance == null) {
+      throw StateError(
+        'OrtEnv has not been initialized. '
+        'Call OrtEnv.setup(binding).init() before accessing OrtEnv.instance.',
+      );
+    }
     return _instance!;
   }
 
@@ -32,13 +33,10 @@ class OrtEnv {
   static OrtApiVersion apiVersion = OrtApiVersion.api14;
 
   ffi.Pointer<bg.OrtEnv>? _ptr;
+  int _refCount = 0;
 
   late ffi.Pointer<bg.OrtApi> _ortApiPtr;
 
-  /// Initializes (or re-uses) the [OrtEnv] singleton with the given [binding].
-  ///
-  /// [binding] is obtained via [openOnnxRuntimeBinding] using the library path
-  /// resolved in the main isolate before any [compute()] call.
   /// Configures (or re-uses) the [OrtEnv] singleton with the given [binding].
   ///
   /// [binding] is obtained via [openOnnxRuntimeBinding] using the library path
@@ -54,30 +52,46 @@ class OrtEnv {
     OrtLoggingLevel level = OrtLoggingLevel.warning,
     String logId = 'DartOnnxRuntime',
   }) {
+    if (_ptr != null) {
+      _refCount++;
+      return;
+    }
+
     final pp = calloc<ffi.Pointer<bg.OrtEnv>>();
-    final statusPtr = _ortApiPtr.ref.CreateEnv
-        .asFunction<
-          bg.OrtStatusPtr Function(
-            int,
-            ffi.Pointer<ffi.Char>,
-            ffi.Pointer<ffi.Pointer<bg.OrtEnv>>,
-          )
-        >()(level.value, logId.toNativeUtf8().cast<ffi.Char>(), pp);
-    OrtStatus.checkOrtStatus(statusPtr);
-    _ptr = pp.value;
-    _setLanguageProjection();
-    calloc.free(pp);
+    final logIdPtr = logId.toNativeUtf8().cast<ffi.Char>();
+    try {
+      final statusPtr = _ortApiPtr.ref.CreateEnv
+          .asFunction<
+            bg.OrtStatusPtr Function(
+              int,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Pointer<bg.OrtEnv>>,
+            )
+          >()(level.value, logIdPtr, pp);
+      OrtStatus.checkOrtStatus(statusPtr);
+      _ptr = pp.value;
+      _refCount = 1;
+      _setLanguageProjection();
+    } finally {
+      calloc
+        ..free(pp)
+        ..free(logIdPtr);
+    }
   }
 
-  /// Release the onnx runtime environment.
+  /// Release the onnx runtime environment (reference-counted).
   void release() {
     if (_ptr == null) {
       return;
     }
-    _ortApiPtr.ref.ReleaseEnv
-        .asFunction<void Function(ffi.Pointer<bg.OrtEnv>)>()(_ptr!);
-    _ptr = null;
-    _instance = null;
+    _refCount--;
+    if (_refCount <= 0) {
+      _ortApiPtr.ref.ReleaseEnv
+          .asFunction<void Function(ffi.Pointer<bg.OrtEnv>)>()(_ptr!);
+      _ptr = null;
+      _instance = null;
+      _refCount = 0;
+    }
   }
 
   /// Gets the version of onnx runtime.
@@ -95,14 +109,14 @@ class OrtEnv {
   /// Gets the onnx runtime environment pointer.
   ffi.Pointer<bg.OrtEnv> get ptr {
     if (_ptr == null) {
-      init();
+      throw StateError('OrtEnv is not initialized or has been released.');
     }
     return _ptr!;
   }
 
   void _setLanguageProjection() {
     if (_ptr == null) {
-      init();
+      throw StateError('OrtEnv is not initialized or has been released.');
     }
     final status = _ortApiPtr.ref.SetLanguageProjection
         .asFunction<

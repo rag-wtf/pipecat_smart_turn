@@ -71,5 +71,38 @@ void main() {
       // Should restart speech detection from speechStart
       expect(vad.process(speech), equals(VadState.speechStart));
     });
+
+    test('warmup adapts noise floor to ambient room noise', () {
+      // Ambient room noise of 0.04
+      final ambientRoom = Float32List(100)..fillRange(0, 100, 0.04);
+      final vad = EnergyVad(warmupFrames: 5);
+
+      // During 5 warmup frames, returns silence and tracks ambient floor
+      for (var i = 0; i < 5; i++) {
+        expect(vad.process(ambientRoom), equals(VadState.silence));
+      }
+      expect(vad.noiseFloor, closeTo(0.04, 0.005));
+
+      // Continuous ambient noise stays silence (not misdetected as speech)
+      expect(vad.process(ambientRoom), equals(VadState.silence));
+
+      // Actual speech (0.3 RMS > 2x 0.04) triggers speech
+      final speech = Float32List(100)..fillRange(0, 100, 0.3);
+      expect(vad.process(speech), equals(VadState.speechStart));
+    });
+
+    test('asymmetric upward adaptation handles ambient noise increase', () {
+      // Start with initial floor 0.01
+      final vad = EnergyVad(initialNoiseFloor: 0.01);
+      expect(vad.noiseFloor, equals(0.01));
+
+      // Slightly higher ambient frame (0.015, which is > 1.5x but < 2x floor)
+      final ambient2 = Float32List(100)..fillRange(0, 100, 0.015);
+      for (var i = 0; i < 50; i++) {
+        expect(vad.process(ambient2), equals(VadState.silence));
+      }
+      // Floor should have adapted upward
+      expect(vad.noiseFloor > 0.012, isTrue);
+    });
   });
 }

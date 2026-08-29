@@ -31,7 +31,8 @@ class SmartTurnConfig {
   final double completionThreshold;
 
   /// The duration of the circular audio buffer in seconds.
-  /// Smart Turn v3 supports up to 8 seconds of context.
+  /// Smart Turn v3 operates on an 8-second (128,000 samples) context window;
+  /// shorter audio buffers are left-padded and longer buffers are cropped.
   /// Defaults to 8. Range: (0.0, 8.0].
   final double maxAudioSeconds;
 
@@ -47,7 +48,10 @@ class SmartTurnConfig {
 
   /// Whether to run ONNX inference in a separate Dart Isolate.
   /// **Recommendation**: Set to `true` for production apps to keep the
-  /// main UI thread responsive during the 10-150ms inference window.
+  /// main UI thread responsive during inference. Setting to `false` executes
+  /// inference synchronously on the calling thread (recommended for tests).
+  /// Note that when `useIsolate: false`, [inferenceTimeoutMs] cannot interrupt
+  /// synchronous native FFI execution.
   final bool useIsolate;
 
   /// Inference execution timeout in milliseconds.

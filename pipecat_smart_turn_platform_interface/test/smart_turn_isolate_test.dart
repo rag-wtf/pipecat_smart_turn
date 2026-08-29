@@ -18,8 +18,8 @@ void main() {
       },
     );
 
-    test('kill handles null isolate gracefully', () {
-      SmartTurnIsolate().kill();
+    test('kill handles null isolate gracefully', () async {
+      await SmartTurnIsolate().kill();
     });
 
     test('spawn stores configuration', () async {
@@ -33,7 +33,7 @@ void main() {
       } on Object catch (e) {
         expect(e, isA<SmartTurnModelLoadException>());
       }
-      isolate.kill();
+      await isolate.kill();
     });
   });
 

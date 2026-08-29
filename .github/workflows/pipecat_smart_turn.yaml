@@ -31,6 +31,13 @@ on:
       - "pipecat_smart_turn_windows/**"
 
 jobs:
+  verify-binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify third-party binary and model checksums
+        run: ./scripts/verify_binaries.sh
+
   spell-check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
     with:
@@ -51,7 +58,6 @@ jobs:
     with:
       working_directory: pipecat_smart_turn
 
-
   android:
     runs-on: ubuntu-latest
 
@@ -60,16 +66,19 @@ jobs:
         working-directory: pipecat_smart_turn/example
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: "11"
+          java-version: "17"
 
       - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+          cache: true
 
       - name: AVD Cache
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         id: avd-cache
         with:
           path: |
@@ -102,9 +111,12 @@ jobs:
         working-directory: pipecat_smart_turn/example
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+          cache: true
 
       - name: Start Simulator
         # Start an iPhone simulator
@@ -123,9 +135,12 @@ jobs:
         working-directory: pipecat_smart_turn/example
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+          cache: true
 
       - name: Install Dependencies
         run: |
@@ -143,9 +158,12 @@ jobs:
         working-directory: pipecat_smart_turn/example
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+          cache: true
 
       - name: E2E Tests
         run: flutter test integration_test/app_test.dart -d macos
@@ -158,9 +176,12 @@ jobs:
         working-directory: pipecat_smart_turn/example
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+          cache: true
 
       - name: E2E Tests
         run: xvfb-run flutter test integration_test/app_test.dart -d chrome
@@ -173,9 +194,12 @@ jobs:
         working-directory: pipecat_smart_turn/example
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+          cache: true
 
       - name: E2E Tests
         run: flutter test integration_test/app_test.dart -d windows

@@ -9,6 +9,6 @@ void main() {
     expect(SmartTurnConfig, isNotNull);
   });
   test('dummy coverage test', () {
-    expect(PipecatSmartTurn().version, '0.0.1');
+    expect(PipecatSmartTurn().version, '0.1.0+1');
   });
 }

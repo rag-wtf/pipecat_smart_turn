@@ -35,7 +35,7 @@ class _WorkerRequest {
   _WorkerRequest(this.command, {this.requestId = 0, this.audioData});
   final _WorkerCommand command;
   final int requestId;
-  final Float32List? audioData;
+  final TransferableTypedData? audioData;
 }
 
 class _WorkerResponse {
@@ -43,6 +43,18 @@ class _WorkerResponse {
   final int requestId;
   final double? result;
   final String? error;
+}
+
+class _WorkerParams {
+  const _WorkerParams({
+    required this.modelFilePath,
+    required this.cpuThreadCount,
+    this.onnxLibraryPath,
+  });
+
+  final String modelFilePath;
+  final int cpuThreadCount;
+  final String? onnxLibraryPath;
 }
 
 Future<void> _workerEntrypoint(IsolateConfig config) async {
@@ -68,11 +80,15 @@ Future<void> _workerEntrypoint(IsolateConfig config) async {
     if (message is _WorkerRequest) {
       if (message.command == _WorkerCommand.dispose) {
         session.dispose();
+        config.sendPort.send(
+          _WorkerResponse(requestId: message.requestId, result: 0),
+        );
         receivePort.close();
         break;
       } else if (message.command == _WorkerCommand.infer) {
         try {
-          final result = await session.run(message.audioData!);
+          final audioList = message.audioData!.materialize().asFloat32List();
+          final result = await session.run(audioList);
           config.sendPort.send(
             _WorkerResponse(requestId: message.requestId, result: result),
           );
@@ -92,15 +108,16 @@ Future<void> _workerEntrypoint(IsolateConfig config) async {
 class SmartTurnIsolate {
   Isolate? _isolate;
   SendPort? _sendPort;
+  ReceivePort? _receivePort;
+  ReceivePort? _errorPort;
+  ReceivePort? _exitPort;
   bool _isInitializing = false;
   int _nextRequestId = 1;
   final Map<int, Completer<_WorkerResponse>> _pendingRequests = {};
   Completer<_WorkerResponse>? _initCompleter;
 
   // Stored parameters for restarting isolate after timeout
-  String? _modelFilePath;
-  int _cpuThreadCount = 1;
-  String? _onnxLibraryPath;
+  _WorkerParams? _workerParams;
 
   // For web fallback
   SmartTurnOnnxSession? _webSession;
@@ -111,9 +128,11 @@ class SmartTurnIsolate {
     int cpuThreadCount = 1,
     String? onnxLibraryPath,
   }) async {
-    _modelFilePath = modelFilePath;
-    _cpuThreadCount = cpuThreadCount;
-    _onnxLibraryPath = onnxLibraryPath;
+    _workerParams = _WorkerParams(
+      modelFilePath: modelFilePath,
+      cpuThreadCount: cpuThreadCount,
+      onnxLibraryPath: onnxLibraryPath,
+    );
 
     if (kIsWeb) {
       _webSession = SmartTurnOnnxSession();
@@ -127,7 +146,8 @@ class SmartTurnIsolate {
 
     _isInitializing = true;
     _initCompleter = Completer<_WorkerResponse>();
-    final receivePort = ReceivePort()
+
+    _receivePort = ReceivePort()
       ..listen((message) {
         if (message is SendPort) {
           _sendPort = message;
@@ -145,26 +165,58 @@ class SmartTurnIsolate {
         }
       });
 
-    _isolate = await Isolate.spawn(
-      _workerEntrypoint,
-      IsolateConfig(
-        modelFilePath: modelFilePath,
-        cpuThreadCount: cpuThreadCount,
-        onnxLibraryPath: onnxLibraryPath,
-        sendPort: receivePort.sendPort,
-      ),
-    );
+    _errorPort = ReceivePort()
+      ..listen((dynamic error) {
+        _handleWorkerError('Worker isolate crashed: $error');
+      });
 
-    // Wait for the isolate to initialize the model.
-    final initResponse = await _initCompleter!.future;
-    _isInitializing = false;
+    _exitPort = ReceivePort()
+      ..listen((dynamic _) {
+        _handleWorkerError('Worker isolate exited unexpectedly');
+      });
 
-    if (initResponse.error != null) {
-      kill();
-      throw SmartTurnModelLoadException(
-        'Worker isolate failed to initialize: ${initResponse.error}',
+    try {
+      _isolate = await Isolate.spawn(
+        _workerEntrypoint,
+        IsolateConfig(
+          modelFilePath: modelFilePath,
+          cpuThreadCount: cpuThreadCount,
+          onnxLibraryPath: onnxLibraryPath,
+          sendPort: _receivePort!.sendPort,
+        ),
+        onError: _errorPort!.sendPort,
+        onExit: _exitPort!.sendPort,
       );
+
+      // Wait for the isolate to initialize the model (with 30s timeout).
+      final initResponse = await _initCompleter!.future.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw const SmartTurnModelLoadException(
+          'Worker isolate initialization timed out after 30 seconds',
+        ),
+      );
+
+      if (initResponse.error != null) {
+        await kill();
+        throw SmartTurnModelLoadException(
+          'Worker isolate failed to initialize: ${initResponse.error}',
+        );
+      }
+    } on Object {
+      await kill();
+      rethrow;
+    } finally {
+      _isInitializing = false;
     }
+  }
+
+  void _handleWorkerError(String errorMessage) {
+    for (final completer in _pendingRequests.values) {
+      if (!completer.isCompleted) {
+        completer.completeError(SmartTurnInferenceException(errorMessage));
+      }
+    }
+    _pendingRequests.clear();
   }
 
   /// Sends audio to the worker isolate for inference and awaits probability.
@@ -197,7 +249,7 @@ class SmartTurnIsolate {
       _WorkerRequest(
         _WorkerCommand.infer,
         requestId: requestId,
-        audioData: audio,
+        audioData: TransferableTypedData.fromList([audio]),
       ),
     );
 
@@ -206,7 +258,7 @@ class SmartTurnIsolate {
         Duration(milliseconds: timeoutMs),
         onTimeout: () {
           _pendingRequests.remove(requestId);
-          _restartWorkerOnTimeout();
+          unawaited(_restartWorkerOnTimeout());
           throw const SmartTurnInferenceException('Inference timed out');
         },
       );
@@ -216,28 +268,28 @@ class SmartTurnIsolate {
       }
 
       return response.result!;
-    } catch (e) {
+    } on Object {
       _pendingRequests.remove(requestId);
       rethrow;
     }
   }
 
-  void _restartWorkerOnTimeout() {
-    final modelPath = _modelFilePath;
-    final threadCount = _cpuThreadCount;
-    final libPath = _onnxLibraryPath;
-    kill();
-    if (modelPath != null) {
+  Future<void> _restartWorkerOnTimeout() async {
+    final params = _workerParams;
+    await kill();
+    if (params != null) {
       spawn(
-        modelFilePath: modelPath,
-        cpuThreadCount: threadCount,
-        onnxLibraryPath: libPath,
+        modelFilePath: params.modelFilePath,
+        cpuThreadCount: params.cpuThreadCount,
+        onnxLibraryPath: params.onnxLibraryPath,
       ).ignore();
     }
   }
 
-  /// Kills any background worker.
-  void kill() {
+  /// Kills any background worker and closes all ports.
+  Future<void> kill() async {
+    _isInitializing = false;
+
     if (kIsWeb) {
       _webSession?.dispose();
       _webSession = null;
@@ -253,10 +305,35 @@ class SmartTurnIsolate {
     }
     _pendingRequests.clear();
 
-    _sendPort?.send(_WorkerRequest(_WorkerCommand.dispose));
+    if (_sendPort != null && _isolate != null) {
+      final disposeCompleter = Completer<_WorkerResponse>();
+      final requestId = _nextRequestId++;
+      _pendingRequests[requestId] = disposeCompleter;
+      try {
+        _sendPort!.send(
+          _WorkerRequest(_WorkerCommand.dispose, requestId: requestId),
+        );
+        await disposeCompleter.future.timeout(
+          const Duration(milliseconds: 500),
+          onTimeout: () => _WorkerResponse(requestId: requestId),
+        );
+      } on Object catch (_) {
+        // Fall back to immediate kill below
+      } finally {
+        _pendingRequests.remove(requestId);
+      }
+    }
+
     _isolate?.kill(priority: Isolate.immediate);
     _isolate = null;
     _sendPort = null;
     _initCompleter = null;
+
+    _receivePort?.close();
+    _receivePort = null;
+    _errorPort?.close();
+    _errorPort = null;
+    _exitPort?.close();
+    _exitPort = null;
   }
 }

@@ -18,25 +18,45 @@ String? resolveOnnxLibraryPath() => ffi_bindings.resolveOnnxLibraryPath();
 
 /// Extracts the bundled ONNX model asset to the application support directory.
 Future<String> extractBundledModel() async {
-  final dir = await getApplicationSupportDirectory();
-  final file = File('${dir.path}/$kDefaultModelFilename');
-  final byteData = await rootBundle.load(kDefaultModelAssetPath);
-  final expectedLength = byteData.lengthInBytes;
+  try {
+    final dir = await getApplicationSupportDirectory();
+    final file = File('${dir.path}/$kDefaultModelFilename');
+    final byteData = await rootBundle.load(kDefaultModelAssetPath);
+    final expectedLength = byteData.lengthInBytes;
 
-  // Re-extract if file doesn't exist or file size does not match asset length.
-  // (H5 fix)
-  if (!file.existsSync() || file.lengthSync() != expectedLength) {
-    final tempFile = File('${dir.path}/$kDefaultModelFilename.tmp');
-    await tempFile.writeAsBytes(
-      byteData.buffer.asUint8List(
-        byteData.offsetInBytes,
-        byteData.lengthInBytes,
-      ),
-      flush: true,
+    // Re-extract if file doesn't exist or size does not match asset length.
+    if (!file.existsSync() || file.lengthSync() != expectedLength) {
+      final tempFile = File(
+        '${dir.path}/$kDefaultModelFilename.${pid}_'
+        '${DateTime.now().microsecondsSinceEpoch}.tmp',
+      );
+      try {
+        await tempFile.writeAsBytes(
+          byteData.buffer.asUint8List(
+            byteData.offsetInBytes,
+            byteData.lengthInBytes,
+          ),
+          flush: true,
+        );
+        await tempFile.rename(file.path);
+      } on Object {
+        if (tempFile.existsSync()) {
+          try {
+            await tempFile.delete();
+          } on Object {
+            // Ignore error during cleanup of temporary file.
+          }
+        }
+        rethrow;
+      }
+    }
+    return file.path;
+  } on Object catch (e) {
+    if (e is SmartTurnException) rethrow;
+    throw SmartTurnModelLoadException(
+      'Failed to extract bundled ONNX model: $e',
     );
-    await tempFile.rename(file.path);
   }
-  return file.path;
 }
 
 /// Wraps the ONNX Runtime session for Smart Turn v3.
@@ -70,15 +90,18 @@ class SmartTurnOnnxSession {
         ..setInterOpNumThreads(cpuThreadCount)
         ..setIntraOpNumThreads(cpuThreadCount);
 
-      // Read file into bytes and load from buffer (avoids paths crossing
-      // isolate boundaries natively)
-      final modelBytes = File(modelFilePath).readAsBytesSync();
-      _session = OrtSession.fromBuffer(
-        modelBytes,
-        sessionOptions,
-      );
+      try {
+        // Read file into bytes and load from buffer (avoids paths crossing
+        // isolate boundaries natively)
+        final modelBytes = File(modelFilePath).readAsBytesSync();
+        _session = OrtSession.fromBuffer(
+          modelBytes,
+          sessionOptions,
+        );
+      } finally {
+        sessionOptions.release();
+      }
 
-      sessionOptions.release();
       _isInitialized = true;
       // coverage:ignore-end
     } on Object catch (e) {

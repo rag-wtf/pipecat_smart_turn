@@ -29,12 +29,12 @@ jobs:
 
     steps:
       - name: 📚 Git Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: 🐦 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: 3.41.1
           cache: true
 
       - name: 📦 Install Pana
@@ -42,7 +42,15 @@ jobs:
 
       - name: 📊 Verify Pana Score
         run: |
-          PANA=$(pana .); PANA_SCORE=$(echo $PANA | sed -n "s/.*Points: \([0-9]*\)\/\([0-9]*\)./\1\/\2/p")
-          echo "Score: $PANA_SCORE"
-          IFS='/'; read -a SCORE_ARR <<< "$PANA_SCORE"; SCORE=${SCORE_ARR[0]};
-          if (( $SCORE < ${{inputs.min_score}} )); then echo "The minimum score of ${{inputs.min_score}} was not met!"; exit 1; fi
+          PANA_OUTPUT=$(pana --json .)
+          SCORE=$(echo "$PANA_OUTPUT" | grep -o '"grantedPoints":[0-9]*' | head -1 | cut -d':' -f2 || true)
+          if [ -z "$SCORE" ]; then
+            PANA_RAW=$(pana .)
+            SCORE=$(echo "$PANA_RAW" | sed -n "s/.*Points: \([0-9]*\)\/.*/\1/p" | head -1)
+          fi
+          SCORE=${SCORE:-0}
+          echo "Pana Granted Points: $SCORE"
+          if [ "$SCORE" -lt "${{inputs.min_score}}" ]; then
+            echo "The minimum score of ${{inputs.min_score}} was not met (got $SCORE)!"
+            exit 1
+          fi

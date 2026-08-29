@@ -25,7 +25,9 @@ On-device Semantic Voice Activity Detection (VAD) for Flutter, powered by Smart 
 3. **Web Support**: To support the Web platform, include the `onnxruntime-web` script in your `web/index.html`:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.2/dist/ort.min.js"
+        integrity="sha384-3L5zSA44O+jvAwO4zA3Nk2qOszUH9tPgV/DKPnoRBEqolJkT4Bq+hBiOgWsK3mlC"
+        crossorigin="anonymous"></script>
 ```
 ## Quick Start
 

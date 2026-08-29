@@ -113,5 +113,10 @@ void main() {
       expect(output[1400], 2);
       expect(output[1599], 2);
     });
+
+    test('throws ArgumentError on non-positive maxSeconds', () {
+      expect(() => AudioBuffer(maxSeconds: 0), throwsA(anything));
+      expect(() => AudioBuffer(maxSeconds: -1), throwsA(anything));
+    });
   });
 }
