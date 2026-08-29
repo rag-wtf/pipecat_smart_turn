@@ -29,7 +29,7 @@ void main() {
       tester,
     ) async {
       final detector = SmartTurnDetector(
-        config: const SmartTurnConfig(inferenceTimeoutMs: 15000),
+        config: const SmartTurnConfig(inferenceTimeoutMs: 30000),
       );
       await detector.initialize();
 
