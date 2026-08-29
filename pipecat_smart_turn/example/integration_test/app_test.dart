@@ -16,7 +16,12 @@ void main() {
       await tester.pumpAndSettle();
       final expected = expectedPlatformName();
       // Platform name is displayed in the AppBar subtitle area
-      await tester.ensureVisible(find.text('Platform: $expected'));
+      var elapsed = 0;
+      while (find.text('Platform: $expected').evaluate().isEmpty &&
+          elapsed < 5000) {
+        await tester.pump(const Duration(milliseconds: 100));
+        elapsed += 100;
+      }
       expect(find.text('Platform: $expected'), findsOneWidget);
     });
 

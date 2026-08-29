@@ -155,7 +155,8 @@ class SmartTurnIsolate {
     }
 
     _isInitializing = true;
-    _initCompleter = Completer<_WorkerResponse>();
+    final initCompleter = Completer<_WorkerResponse>();
+    _initCompleter = initCompleter;
 
     _receivePort = ReceivePort()
       ..listen((message) {
@@ -163,8 +164,8 @@ class SmartTurnIsolate {
           _sendPort = message;
         } else if (message is _WorkerResponse) {
           if (message.requestId == 0) {
-            if (_initCompleter != null && !_initCompleter!.isCompleted) {
-              _initCompleter!.complete(message);
+            if (!initCompleter.isCompleted) {
+              initCompleter.complete(message);
             }
           } else {
             final completer = _pendingRequests.remove(message.requestId);
@@ -199,7 +200,7 @@ class SmartTurnIsolate {
       );
 
       // Wait for the isolate to initialize the model (with 30s timeout).
-      final initResponse = await _initCompleter!.future.timeout(
+      final initResponse = await initCompleter.future.timeout(
         const Duration(seconds: 30),
         onTimeout: () => throw const SmartTurnModelLoadException(
           'Worker isolate initialization timed out after 30 seconds',
@@ -221,6 +222,11 @@ class SmartTurnIsolate {
   }
 
   void _handleWorkerError(String errorMessage) {
+    if (_initCompleter != null && !_initCompleter!.isCompleted) {
+      _initCompleter!.complete(
+        _WorkerResponse(requestId: 0, error: errorMessage),
+      );
+    }
     for (final completer in _pendingRequests.values) {
       if (!completer.isCompleted) {
         completer.completeError(SmartTurnInferenceException(errorMessage));
@@ -310,6 +316,12 @@ class SmartTurnIsolate {
       _webSession?.dispose();
       _webSession = null;
       return;
+    }
+
+    if (_initCompleter != null && !_initCompleter!.isCompleted) {
+      _initCompleter!.complete(
+        _WorkerResponse(requestId: 0, error: 'Worker isolate killed'),
+      );
     }
 
     for (final completer in _pendingRequests.values) {

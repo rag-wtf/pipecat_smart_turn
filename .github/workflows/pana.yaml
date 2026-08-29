@@ -42,10 +42,11 @@ jobs:
 
       - name: 📊 Verify Pana Score
         run: |
-          PANA_OUTPUT=$(pana --json .)
+          PROJECT_ROOT=$(git rev-parse --show-toplevel)
+          PANA_OUTPUT=$(pana --json --project-root "$PROJECT_ROOT" .)
           SCORE=$(echo "$PANA_OUTPUT" | grep -o '"grantedPoints":[0-9]*' | head -1 | cut -d':' -f2 || true)
           if [ -z "$SCORE" ]; then
-            PANA_RAW=$(pana .)
+            PANA_RAW=$(pana --project-root "$PROJECT_ROOT" .)
             SCORE=$(echo "$PANA_RAW" | sed -n "s/.*Points: \([0-9]*\)\/.*/\1/p" | head -1)
           fi
           SCORE=${SCORE:-0}

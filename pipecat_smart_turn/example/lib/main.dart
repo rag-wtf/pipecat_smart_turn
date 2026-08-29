@@ -83,6 +83,16 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
       // Execute deferred loading here before instantiating ONNX components
       await smart_turn.loadLibrary();
 
+      // 3. Fetch platform name via PipecatSmartTurnPlatform.instance
+      final name = await smart_turn.PipecatSmartTurnPlatform.instance
+          .getPlatformName();
+
+      if (mounted && name != null) {
+        setState(() {
+          _platformName = name;
+        });
+      }
+
       // 3. Display active SmartTurnConfig values — create named config object
       //    so we can inspect it in the UI.
       // Note: cannot use `const` with deferred types.
@@ -97,13 +107,8 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
         maxSeconds: _config.maxAudioSeconds as double,
       );
 
-      // 3. Fetch platform name via PipecatSmartTurnPlatform.instance
-      final name = await smart_turn.PipecatSmartTurnPlatform.instance
-          .getPlatformName();
-
       if (!mounted) return;
       setState(() {
-        _platformName = name ?? '';
         _status = 'Engine Ready';
       });
     } on Exception catch (e) {

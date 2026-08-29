@@ -44,7 +44,7 @@ jobs:
       includes: |
         **/*.md
         !brick/**/*.md
-        .*/**/*.md
+        !.*/**
       modified_files_only: false
 
   build:
@@ -100,7 +100,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          script: flutter test integration_test/app_test.dart
+          script: flutter test integration_test/app_test.dart -d android
           working-directory: pipecat_smart_turn/example
 
   ios:
@@ -184,7 +184,10 @@ jobs:
           cache: true
 
       - name: E2E Tests
-        run: xvfb-run flutter test integration_test/app_test.dart -d chrome
+        run: |
+          chromedriver --port=4444 &
+          sleep 2
+          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart -d web-server
 
   windows:
     runs-on: windows-2022

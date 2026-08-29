@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   s.dependency 'Flutter'
   s.dependency 'onnxruntime-objc', '1.24.2'
   s.static_framework = true
-  s.platform = :ios, '13.0'
+  s.platform = :ios, '15.1'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '6.1'
 end

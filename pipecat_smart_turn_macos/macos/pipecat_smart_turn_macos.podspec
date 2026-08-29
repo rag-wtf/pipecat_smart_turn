@@ -16,8 +16,8 @@ Pod::Spec.new do |s|
   s.dependency 'FlutterMacOS'
   s.dependency 'onnxruntime-objc', '1.24.2'
   s.static_framework = true
-  s.platform = :osx, '10.15'
-  s.osx.deployment_target = '10.15'
+  s.platform = :osx, '14.0'
+  s.osx.deployment_target = '14.0'
   s.swift_version = '6.1'
 end
 
