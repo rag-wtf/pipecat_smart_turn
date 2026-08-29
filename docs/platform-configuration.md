@@ -1,14 +1,14 @@
 # Platform Configuration
 
-Smart Turn v3 is a pure-Dart implementation, but it relies on `onnxruntime` for native inference. Because the ONNX model is not bundled with the package, you must provide an absolute file path to the model on the device.
+Smart Turn v3 is a pure-Dart implementation that relies on `onnxruntime` for native inference. The `smart-turn-v3.2-cpu.onnx` model (8.7 MB) is bundled with the package and extracted automatically on first initialization. You can optionally supply a custom model path via `SmartTurnConfig.customModelPath`.
 
 ## Recommended File Handling
 
-We recommend using the [path_provider](https://pub.dev/packages/path_provider) package to manage device-agnostic file paths.
+When supplying a custom model file at runtime, we recommend using the [path_provider](https://pub.dev/packages/path_provider) package to manage device-agnostic file paths.
 
-### 1. Model Storage
+### 1. Custom Model Storage
 
-Place your `.onnx` model in your application's `assets` folder or download it at runtime.
+Place your custom `.onnx` model in your application's `assets` folder or download it at runtime.
 
 ### 2. Accessing the Model Path
 
@@ -20,7 +20,7 @@ import 'package:pipecat_smart_turn/pipecat_smart_turn.dart';
 Future<void> initSmartTurn() async {
   // Get the application documents directory
   final directory = await getApplicationDocumentsDirectory();
-  final modelPath = '${directory.path}/smart_turn_v3.onnx';
+  final modelPath = '${directory.path}/smart-turn-v3.2-cpu.onnx';
 
   // Ensure the model exists at this path
   if (!await File(modelPath).exists()) {
@@ -43,5 +43,5 @@ Future<void> initSmartTurn() async {
 
 ## iOS Requirements
 
-- **Deployment Target**: 12.0+
+- **Deployment Target**: 13.0+
 - **Background Modes**: If processing audio in the background, ensure 'Audio, AirPlay, and Picture in Picture' is enabled.

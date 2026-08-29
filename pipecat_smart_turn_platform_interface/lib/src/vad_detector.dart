@@ -56,6 +56,8 @@ class EnergyVad {
   int _warmupCount = 0;
   bool _isSpeaking = false;
 
+  int _speechFrames = 0;
+
   /// Current estimated noise floor RMS.
   double get noiseFloor => _noiseFloor;
 
@@ -74,7 +76,7 @@ class EnergyVad {
       return VadState.silence;
     }
 
-    // Dynamic noise floor adaptation during non-speech (asymmetric EMA)
+    // Dynamic noise floor adaptation
     if (!_isSpeaking) {
       if (frameRms < _noiseFloor * 1.5) {
         // Fast downward / close-ambient tracking
@@ -82,7 +84,15 @@ class EnergyVad {
             (_noiseFloor * noiseFloorWeight) +
             (frameRms * (1.0 - noiseFloorWeight));
       } else {
-        // Slow upward adaptation for rising ambient noise
+        // Upward adaptation for rising ambient noise
+        _noiseFloor = (_noiseFloor * 0.98) + (frameRms * 0.02);
+      }
+    } else {
+      // If continuous high energy persists without pauses (e.g. steady
+      // room noise rather than speech), slowly adapt the floor upward to
+      // avoid permanent lockup.
+      _speechFrames++;
+      if (_speechFrames > 20) {
         _noiseFloor = (_noiseFloor * 0.98) + (frameRms * 0.02);
       }
     }
@@ -93,10 +103,12 @@ class EnergyVad {
       _silenceCounter = 0;
       if (!_isSpeaking) {
         _isSpeaking = true;
+        _speechFrames = 1;
         return VadState.speechStart;
       }
       return VadState.speech;
     } else {
+      _speechFrames = 0;
       if (_isSpeaking) {
         _silenceCounter++;
         if (_silenceCounter >= silenceGraceFrames) {
@@ -114,6 +126,7 @@ class EnergyVad {
   void reset({double? newNoiseFloor}) {
     _silenceCounter = 0;
     _isSpeaking = false;
+    _speechFrames = 0;
     if (newNoiseFloor != null) {
       _noiseFloor = newNoiseFloor;
       _warmupCount = warmupFrames;

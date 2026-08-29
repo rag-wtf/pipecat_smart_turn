@@ -232,12 +232,11 @@ class SmartTurnIsolate {
           );
     }
 
+    if (_isInitializing && _initCompleter != null) {
+      await _initCompleter!.future;
+    }
+
     if (_isolate == null || _sendPort == null) {
-      if (_isInitializing) {
-        throw const SmartTurnInferenceException(
-          'Isolate is still initializing',
-        );
-      }
       throw const SmartTurnNotInitializedException();
     }
 

@@ -5,7 +5,7 @@
 A common platform interface for the `pipecat_smart_turn` package.
 
 This package contains the core implementation of the Smart Turn v3 semantic VAD, including:
-- **Audio Preprocessing**: Padding, fade-ins, and format conversion.
+- **Audio Preprocessing**: Padding, normalization, and format conversion.
 - **Isolate Management**: Background threading for ONNX inference.
 - **VAD Logic**: Energy-based VAD for speech detection.
 - **ONNX Session**: Native inference management.
