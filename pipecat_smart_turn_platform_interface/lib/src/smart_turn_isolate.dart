@@ -236,7 +236,7 @@ class SmartTurnIsolate {
   }
 
   /// Sends audio to the worker isolate for inference and awaits probability.
-  Future<double> predict(Float32List audio, {int timeoutMs = 2000}) async {
+  Future<double> predict(Float32List audio, {int timeoutMs = 5000}) async {
     if (kIsWeb) {
       if (_webSession == null) throw const SmartTurnNotInitializedException();
       return _webSession!

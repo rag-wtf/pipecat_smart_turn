@@ -7,7 +7,7 @@ class SmartTurnConfig {
     this.customModelPath,
     this.cpuThreadCount = 1,
     this.useIsolate = true,
-    this.inferenceTimeoutMs = 2000,
+    this.inferenceTimeoutMs = 5000,
     this.logger,
   }) : assert(
          completionThreshold >= 0.0 && completionThreshold <= 1.0,

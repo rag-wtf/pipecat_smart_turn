@@ -401,12 +401,16 @@ class _SmartTurnDemoState extends State<SmartTurnDemo> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _status.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
+                      Flexible(
+                        child: Text(
+                          _status.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
                         ),
                       ),
                     ],
@@ -524,23 +528,26 @@ class _ConfigInfoRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _ConfigChip(label: 'Threshold', value: '${threshold.toInt()}%'),
-          _ConfigDivider(),
-          _ConfigChip(
-            label: 'Max Audio',
-            value: '${maxSecs.toStringAsFixed(0)}s',
-          ),
-          _ConfigDivider(),
-          _ConfigChip(label: 'Isolate', value: useIsolate ? 'ON' : 'OFF'),
-          _ConfigDivider(),
-          _ConfigChip(
-            label: 'Threads',
-            value: threads.toString(),
-          ),
-        ],
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _ConfigChip(label: 'Threshold', value: '${threshold.toInt()}%'),
+            _ConfigDivider(),
+            _ConfigChip(
+              label: 'Max Audio',
+              value: '${maxSecs.toStringAsFixed(0)}s',
+            ),
+            _ConfigDivider(),
+            _ConfigChip(label: 'Isolate', value: useIsolate ? 'ON' : 'OFF'),
+            _ConfigDivider(),
+            _ConfigChip(
+              label: 'Threads',
+              value: threads.toString(),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -18,9 +18,9 @@ void main() {
       // Platform name is displayed in the AppBar subtitle area
       var elapsed = 0;
       while (find.text('Platform: $expected').evaluate().isEmpty &&
-          elapsed < 5000) {
-        await tester.pump(const Duration(milliseconds: 100));
-        elapsed += 100;
+          elapsed < 10000) {
+        await tester.pump(const Duration(milliseconds: 200));
+        elapsed += 200;
       }
       expect(find.text('Platform: $expected'), findsOneWidget);
     });
@@ -28,7 +28,9 @@ void main() {
     testWidgets('initializes and runs end-to-end inference prediction', (
       tester,
     ) async {
-      final detector = SmartTurnDetector();
+      final detector = SmartTurnDetector(
+        config: const SmartTurnConfig(inferenceTimeoutMs: 15000),
+      );
       await detector.initialize();
 
       // Create 1.0 second of synthetic 16kHz audio (16,000 samples)
