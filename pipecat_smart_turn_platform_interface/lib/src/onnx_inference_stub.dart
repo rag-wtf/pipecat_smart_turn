@@ -4,7 +4,9 @@ import 'dart:typed_data';
 String? resolveOnnxLibraryPath() => null;
 
 /// Extracts bundled model asset (stub implementation throws UnsupportedError).
-Future<String> extractBundledModel() async {
+Future<String> extractBundledModel({
+  void Function(String message)? logger,
+}) async {
   throw UnsupportedError(
     'extractBundledModel is not supported on this platform.',
   );

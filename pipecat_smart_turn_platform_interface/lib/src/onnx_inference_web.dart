@@ -11,7 +11,10 @@ import 'package:pipecat_smart_turn_platform_interface/src/onnx_runtime_web.dart'
 String? resolveOnnxLibraryPath() => null;
 
 /// Resolves bundled model path for web asset loading.
-Future<String> extractBundledModel() async {
+Future<String> extractBundledModel({
+  void Function(String message)? logger,
+}) async {
+  logger?.call('extractBundledModel: web asset path resolved');
   return 'assets/$kDefaultModelAssetPath';
 }
 

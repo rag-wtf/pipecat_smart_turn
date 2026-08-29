@@ -32,9 +32,13 @@ class EnergyVad {
     this.silenceThreshold = 2.0, // multiplier over noise floor
     this.noiseFloorWeight = 0.98,
     this.silenceGraceFrames = 3,
-    this.warmupFrames = 0,
+    this.warmupFrames = 10,
     this.initialNoiseFloor = 0.001,
   }) : _noiseFloor = initialNoiseFloor;
+
+  static const double _kNoiseFloorUpAlpha = 0.98;
+  static const double _kNoiseFloorUpBeta = 0.02;
+  static const int _kContinuousSpeechFramesBeforeFloorUpdate = 20;
 
   /// The multiplier over noise floor to consider signal as speech.
   final double silenceThreshold;
@@ -85,15 +89,19 @@ class EnergyVad {
             (frameRms * (1.0 - noiseFloorWeight));
       } else {
         // Upward adaptation for rising ambient noise
-        _noiseFloor = (_noiseFloor * 0.98) + (frameRms * 0.02);
+        _noiseFloor =
+            (_noiseFloor * _kNoiseFloorUpAlpha) +
+            (frameRms * _kNoiseFloorUpBeta);
       }
     } else {
       // If continuous high energy persists without pauses (e.g. steady
       // room noise rather than speech), slowly adapt the floor upward to
       // avoid permanent lockup.
       _speechFrames++;
-      if (_speechFrames > 20) {
-        _noiseFloor = (_noiseFloor * 0.98) + (frameRms * 0.02);
+      if (_speechFrames > _kContinuousSpeechFramesBeforeFloorUpdate) {
+        _noiseFloor =
+            (_noiseFloor * _kNoiseFloorUpAlpha) +
+            (frameRms * _kNoiseFloorUpBeta);
       }
     }
 

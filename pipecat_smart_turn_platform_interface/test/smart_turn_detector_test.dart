@@ -49,6 +49,9 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
   int? spawnedCpuThreadCount;
 
   @override
+  void Function(String message)? get logger => null;
+
+  @override
   Future<void> spawn({
     required String modelFilePath,
     int cpuThreadCount = 1,

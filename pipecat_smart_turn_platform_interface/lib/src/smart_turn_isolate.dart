@@ -106,6 +106,12 @@ Future<void> _workerEntrypoint(IsolateConfig config) async {
 ///
 /// Uses a long-lived isolate on Native platforms, and the main thread on Web.
 class SmartTurnIsolate {
+  /// Creates a [SmartTurnIsolate] instance with optional [logger].
+  SmartTurnIsolate({this.logger});
+
+  /// Optional logger callback for isolate lifecycle events.
+  final void Function(String message)? logger;
+
   Isolate? _isolate;
   SendPort? _sendPort;
   ReceivePort? _receivePort;
@@ -128,6 +134,10 @@ class SmartTurnIsolate {
     int cpuThreadCount = 1,
     String? onnxLibraryPath,
   }) async {
+    logger?.call(
+      'SmartTurnIsolate: spawning background worker for model=$modelFilePath, '
+      'threads=$cpuThreadCount, libPath=$onnxLibraryPath',
+    );
     _workerParams = _WorkerParams(
       modelFilePath: modelFilePath,
       cpuThreadCount: cpuThreadCount,
@@ -274,6 +284,7 @@ class SmartTurnIsolate {
   }
 
   Future<void> _restartWorkerOnTimeout() async {
+    logger?.call('SmartTurnIsolate: restarting worker after inference timeout');
     final params = _workerParams;
     await kill();
     if (params != null) {

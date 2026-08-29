@@ -11,20 +11,20 @@ void main() {
     });
 
     test('transitions to speechStart on high energy', () {
-      final vad = EnergyVad();
+      final vad = EnergyVad(warmupFrames: 0);
       final speech = Float32List(100)..fillRange(0, 100, 0.5);
       expect(vad.process(speech), equals(VadState.speechStart));
     });
 
     test('maintains speech state', () {
-      final vad = EnergyVad();
+      final vad = EnergyVad(warmupFrames: 0);
       final speech = Float32List(100)..fillRange(0, 100, 0.5);
       vad.process(speech); // speechStart
       expect(vad.process(speech), equals(VadState.speech));
     });
 
     test('evaluates silence after speech', () {
-      final vad = EnergyVad();
+      final vad = EnergyVad(warmupFrames: 0);
       final speech = Float32List(100)..fillRange(0, 100, 0.5);
       final silence = Float32List(100)..fillRange(0, 100, 0);
 
@@ -38,7 +38,8 @@ void main() {
 
     test('noise floor adapts to low signal', () {
       // Use high weight for fast adaptation in test
-      final vad = EnergyVad(noiseFloorWeight: 0.5)..reset(newNoiseFloor: 0.1);
+      final vad = EnergyVad(noiseFloorWeight: 0.5, warmupFrames: 0)
+        ..reset(newNoiseFloor: 0.1);
 
       // Simulate high noise floor initially
       final initialNoise = Float32List(100)..fillRange(0, 100, 0.1);
@@ -61,7 +62,7 @@ void main() {
     });
 
     test('reset clears internal state', () {
-      final vad = EnergyVad();
+      final vad = EnergyVad(warmupFrames: 0);
       final speech = Float32List(100)..fillRange(0, 100, 0.5);
       expect(vad.process(speech), equals(VadState.speechStart));
       expect(vad.process(speech), equals(VadState.speech));
@@ -93,7 +94,7 @@ void main() {
 
     test('asymmetric upward adaptation handles ambient noise increase', () {
       // Start with initial floor 0.01
-      final vad = EnergyVad(initialNoiseFloor: 0.01);
+      final vad = EnergyVad(initialNoiseFloor: 0.01, warmupFrames: 0);
       expect(vad.noiseFloor, equals(0.01));
 
       // Slightly higher ambient frame (0.015, which is > 1.5x but < 2x floor)

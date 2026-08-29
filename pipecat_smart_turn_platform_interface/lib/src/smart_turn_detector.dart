@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'dart:typed_data';
 
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/audio_preprocessor.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/onnx_inference.dart'; // SmartTurnOnnxSession, resolveOnnxLibraryPath, extractBundledModel
@@ -87,10 +86,10 @@ class SmartTurnDetector {
 
     if (modelPath.isEmpty) {
       config.logger?.call(
-        'SmartTurnDetector: extracting bundled ONNX model',
+        'SmartTurnDetector: resolving bundled ONNX model',
       );
       try {
-        modelPath = await extractBundledModel();
+        modelPath = await extractBundledModel(logger: config.logger);
       } on Object catch (e) {
         // coverage:ignore-start
         throw SmartTurnModelLoadException(
@@ -106,6 +105,12 @@ class SmartTurnDetector {
     // Platform.resolvedExecutable correctly points to the app bundle.
     // This is then passed into session/isolate so compute() workers get it.
     final onnxLibraryPath = resolveOnnxLibraryPath();
+    if (onnxLibraryPath == null && !kIsWeb) {
+      config.logger?.call(
+        'SmartTurnDetector: native ONNX library path unresolved; '
+        'falling back to system dynamic linker search',
+      );
+    }
     config.logger?.call(
       'SmartTurnDetector: initializing session with model=$modelPath, '
       'useIsolate=${config.useIsolate}, threads=${config.cpuThreadCount}, '
@@ -113,7 +118,8 @@ class SmartTurnDetector {
     );
 
     if (config.useIsolate) {
-      _inferenceIsolate = isolateOverride ?? SmartTurnIsolate();
+      _inferenceIsolate =
+          isolateOverride ?? SmartTurnIsolate(logger: config.logger);
       await _inferenceIsolate!.spawn(
         modelFilePath: modelPath,
         cpuThreadCount: config.cpuThreadCount,

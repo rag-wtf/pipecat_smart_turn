@@ -17,7 +17,9 @@ import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxru
 String? resolveOnnxLibraryPath() => ffi_bindings.resolveOnnxLibraryPath();
 
 /// Extracts the bundled ONNX model asset to the application support directory.
-Future<String> extractBundledModel() async {
+Future<String> extractBundledModel({
+  void Function(String message)? logger,
+}) async {
   try {
     final dir = await getApplicationSupportDirectory();
     final file = File('${dir.path}/$kDefaultModelFilename');
@@ -26,6 +28,14 @@ Future<String> extractBundledModel() async {
 
     // Re-extract if file doesn't exist or size does not match asset length.
     if (!file.existsSync() || file.lengthSync() != expectedLength) {
+      if (!file.existsSync()) {
+        logger?.call('extractBundledModel: model cache miss, extracting');
+      } else {
+        logger?.call(
+          'extractBundledModel: model corrupted or size mismatch, '
+          're-extracting',
+        );
+      }
       final tempFile = File(
         '${dir.path}/$kDefaultModelFilename.${pid}_'
         '${DateTime.now().microsecondsSinceEpoch}.tmp',
@@ -49,6 +59,10 @@ Future<String> extractBundledModel() async {
         }
         rethrow;
       }
+    } else {
+      logger?.call(
+        'extractBundledModel: model cache hit ($kDefaultModelFilename)',
+      );
     }
     return file.path;
   } on Object catch (e) {
