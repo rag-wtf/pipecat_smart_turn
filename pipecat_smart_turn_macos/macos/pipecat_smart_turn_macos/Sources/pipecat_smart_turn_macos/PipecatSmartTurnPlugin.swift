@@ -1,4 +1,6 @@
-import FlutterMacOS
+#if canImport(FlutterMacOS)
+@preconcurrency import FlutterMacOS
+#endif
 import Foundation
 
 public class PipecatSmartTurnPlugin: NSObject, FlutterPlugin {

@@ -18,6 +18,6 @@ Pod::Spec.new do |s|
   s.static_framework = true
   s.platform = :osx, '14.0'
   s.osx.deployment_target = '14.0'
-  s.swift_version = '6.1'
+  s.swift_version = '5.0'
 end
 

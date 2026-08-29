@@ -1,5 +1,9 @@
-import Flutter
+#if canImport(Flutter)
+@preconcurrency import Flutter
+#endif
+#if canImport(UIKit)
 import UIKit
+#endif
 
 public class PipecatSmartTurnPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
