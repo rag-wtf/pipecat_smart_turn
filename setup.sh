@@ -61,4 +61,11 @@ dart pub global activate very_good_cli
 echo "Running dart pub get..."
 dart pub get
 
+# Download missing ONNX Runtime native binaries if needed
+if [ -f "scripts/download_onnxruntime.sh" ]; then
+    echo "Checking ONNX Runtime native binaries..."
+    chmod +x scripts/download_onnxruntime.sh
+    ./scripts/download_onnxruntime.sh
+fi
+
 echo "--- Environment Setup Complete ---"

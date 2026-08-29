@@ -26,14 +26,16 @@ set(ARM64_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/arm64/libonnxruntime.so.1.24.2")
 
 set(BUNDLED_LIBS)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
-  if(EXISTS "${ARM64_LIB_PATH}")
-    list(APPEND BUNDLED_LIBS "${ARM64_LIB_PATH}")
+  if(NOT EXISTS "${ARM64_LIB_PATH}")
+    message(FATAL_ERROR "ONNX Runtime library not found at ${ARM64_LIB_PATH}. Run scripts/download_onnxruntime.sh to fetch missing native binaries.")
   endif()
+  list(APPEND BUNDLED_LIBS "${ARM64_LIB_PATH}")
 else()
   # Default to x86_64
-  if(EXISTS "${X64_LIB_PATH}")
-    list(APPEND BUNDLED_LIBS "${X64_LIB_PATH}")
+  if(NOT EXISTS "${X64_LIB_PATH}")
+    message(FATAL_ERROR "ONNX Runtime library not found at ${X64_LIB_PATH}. Run scripts/download_onnxruntime.sh to fetch missing native binaries.")
   endif()
+  list(APPEND BUNDLED_LIBS "${X64_LIB_PATH}")
 endif()
 
 set(pipecat_smart_turn_linux_bundled_libraries

@@ -46,3 +46,11 @@ build/
 .project
 .classpath
 .settings
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+

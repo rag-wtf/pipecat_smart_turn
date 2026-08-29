@@ -26,8 +26,6 @@ flutter:
 dependencies:
   flutter:
     sdk: flutter
-  pipecat_smart_turn_platform_interface:
-    path: ../pipecat_smart_turn_platform_interface
   pipecat_smart_turn_android:
     path: ../pipecat_smart_turn_android
   pipecat_smart_turn_ios:
@@ -36,6 +34,8 @@ dependencies:
     path: ../pipecat_smart_turn_linux
   pipecat_smart_turn_macos:
     path: ../pipecat_smart_turn_macos
+  pipecat_smart_turn_platform_interface:
+    path: ../pipecat_smart_turn_platform_interface
   pipecat_smart_turn_web:
     path: ../pipecat_smart_turn_web
   pipecat_smart_turn_windows:
