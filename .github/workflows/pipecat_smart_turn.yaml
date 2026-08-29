@@ -127,6 +127,7 @@ jobs:
         run: |
           UDID=$(xcrun xctrace list devices | grep "^iPhone" | awk '{gsub(/[()]/,""); print $NF}' | head -n 1)
           echo "Simulator UDID: $UDID"
+          open -a Simulator --args -CurrentDeviceUDID "$UDID"
           xcrun simctl boot "${UDID:?No Simulator with this name found}" || true
           xcrun simctl bootstatus "$UDID" -b
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV

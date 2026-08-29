@@ -199,11 +199,11 @@ class SmartTurnIsolate {
         onExit: _exitPort!.sendPort,
       );
 
-      // Wait for the isolate to initialize the model (with 30s timeout).
+      // Wait for the isolate to initialize the model (with 120s timeout).
       final initResponse = await initCompleter.future.timeout(
-        const Duration(seconds: 30),
+        const Duration(seconds: 120),
         onTimeout: () => throw const SmartTurnModelLoadException(
-          'Worker isolate initialization timed out after 30 seconds',
+          'Worker isolate initialization timed out after 120 seconds',
         ),
       );
 
