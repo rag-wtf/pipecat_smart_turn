@@ -112,26 +112,26 @@ class MelSpectrogram {
     // Power spectrogram [kNumFrames * kNFreqs] in frame-major order.
     final powerSpec = Float64List(kNumFrames * kNFreqs);
 
-    final x2Re = Float64List(16 * 25);
-    final x2Im = Float64List(16 * 25);
+    final x2Re = Float64List(kFftRadix1 * kFftRadix2);
+    final x2Im = Float64List(kFftRadix1 * kFftRadix2);
 
     for (var t = 0; t < kNumFrames; t++) {
       final start = t * kHopLength;
       final tOffset = t * kNFreqs;
 
       // 16-point DFT along columns + twiddle multiplication
-      for (var n2 = 0; n2 < 25; n2++) {
-        for (var k1 = 0; k1 < 16; k1++) {
+      for (var n2 = 0; n2 < kFftRadix2; n2++) {
+        for (var k1 = 0; k1 < kFftRadix1; k1++) {
           var sRe = 0.0;
           var sIm = 0.0;
-          final offset16 = k1 * 16;
-          for (var n1 = 0; n1 < 16; n1++) {
-            final n = n1 * 25 + n2;
+          final offset16 = k1 * kFftRadix1;
+          for (var n1 = 0; n1 < kFftRadix1; n1++) {
+            final n = n1 * kFftRadix2 + n2;
             final val = padded[start + n] * _hannWindow[n];
             sRe += val * _cos16[offset16 + n1];
             sIm += val * _sin16[offset16 + n1];
           }
-          final twIdx = k1 * 25 + n2;
+          final twIdx = k1 * kFftRadix2 + n2;
           final twC = _twiddleCos[twIdx];
           final twS = _twiddleSin[twIdx];
           x2Re[twIdx] = sRe * twC - sIm * twS;
@@ -140,17 +140,18 @@ class MelSpectrogram {
       }
 
       // 25-point DFT along rows (only for positive frequency bins k < 201)
-      for (var k1 = 0; k1 < 16; k1++) {
-        final rowOffset = k1 * 25;
-        for (var k2 = 0; k2 < 25; k2++) {
-          final k = k1 + 16 * k2;
+      for (var k1 = 0; k1 < kFftRadix1; k1++) {
+        final rowOffset = k1 * kFftRadix2;
+        for (var k2 = 0; k2 < kFftRadix2; k2++) {
+          final k = k1 + kFftRadix1 * k2;
           if (k < kNFreqs) {
             var sRe = 0.0;
             var sIm = 0.0;
-            final offset25 = k2 * 25;
-            for (var n2 = 0; n2 < 25; n2++) {
-              final re = x2Re[rowOffset + n2];
-              final im = x2Im[rowOffset + n2];
+            final offset25 = k2 * kFftRadix2;
+            for (var n2 = 0; n2 < kFftRadix2; n2++) {
+              final idx = rowOffset + n2;
+              final re = x2Re[idx];
+              final im = x2Im[idx];
               final c = _cos25[offset25 + n2];
               final s = _sin25[offset25 + n2];
               sRe += re * c - im * s;

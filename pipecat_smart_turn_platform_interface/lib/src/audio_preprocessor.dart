@@ -14,12 +14,14 @@ class AudioPreprocessor {
 
   /// Prepares an audio segment for the ONNX model.
   ///
-  /// Requirement: input must be exactly 128,000 samples.
+  /// Requirement: input tensor must be exactly 128,000 samples (8.0s @ 16 kHz)
+  /// matching the Smart Turn v3 Whisper encoder input dimensions
+  /// `[1, 80, 800]`.
   /// Behavior:
   /// - If [audio] < 128,000, it is **left-padded** with zeros.
   /// - If [audio] > 128,000, it is **cropped** to the most recent samples.
   /// - Applies per-utterance zero-mean / unit-variance normalization.
-  /// - For near-silence input (variance < 1e-8), returns a zero-filled buffer
+  /// - For near-silence input (RMS < 1e-4), returns a zero-filled buffer
   ///   to avoid amplifying microphone dither noise to unit variance.
   static Float32List prepareInput(Float32List audio) {
     final result = Float32List(kMaxSamples);

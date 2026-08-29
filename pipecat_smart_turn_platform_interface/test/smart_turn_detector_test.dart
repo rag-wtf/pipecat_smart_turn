@@ -76,7 +76,7 @@ class MockSmartTurnIsolate implements SmartTurnIsolate {
   }
 
   @override
-  Future<void> kill() async {
+  Future<void> kill({bool preserveInit = false}) async {
     killCalled = true;
   }
 }

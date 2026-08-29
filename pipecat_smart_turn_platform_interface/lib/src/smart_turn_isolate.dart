@@ -285,8 +285,12 @@ class SmartTurnIsolate {
 
   Future<void> _restartWorkerOnTimeout() async {
     logger?.call('SmartTurnIsolate: restarting worker after inference timeout');
+    _isInitializing = true;
+    if (_initCompleter == null || _initCompleter!.isCompleted) {
+      _initCompleter = Completer<_WorkerResponse>();
+    }
     final params = _workerParams;
-    await kill();
+    await kill(preserveInit: true);
     if (params != null) {
       spawn(
         modelFilePath: params.modelFilePath,
@@ -297,8 +301,10 @@ class SmartTurnIsolate {
   }
 
   /// Kills any background worker and closes all ports.
-  Future<void> kill() async {
-    _isInitializing = false;
+  Future<void> kill({bool preserveInit = false}) async {
+    if (!preserveInit) {
+      _isInitializing = false;
+    }
 
     if (kIsWeb) {
       _webSession?.dispose();

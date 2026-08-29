@@ -77,8 +77,10 @@ class EnergyVad {
       return VadState.silence;
     }
 
+    final isHighEnergy = frameRms > (_noiseFloor * silenceThreshold);
+
     // Dynamic noise floor adaptation during non-speech frames
-    if (!_isSpeaking) {
+    if (!isHighEnergy && !_isSpeaking) {
       if (frameRms < _noiseFloor * 1.5) {
         // Fast downward / close-ambient tracking
         _noiseFloor =
@@ -91,8 +93,6 @@ class EnergyVad {
             (frameRms * _kNoiseFloorUpBeta);
       }
     }
-
-    final isHighEnergy = frameRms > (_noiseFloor * silenceThreshold);
 
     if (isHighEnergy) {
       _silenceCounter = 0;
