@@ -139,8 +139,7 @@ enum OrtApiVersion {
   api14(14),
 
   /// Training API version 1.
-  trainingApi1(1)
-  ;
+  trainingApi1(1);
 
   const OrtApiVersion(this.value);
 
@@ -163,8 +162,7 @@ enum OrtLoggingLevel {
   error(3),
 
   /// Fatal logging level.
-  fatal(4)
-  ;
+  fatal(4);
 
   const OrtLoggingLevel(this.value);
 

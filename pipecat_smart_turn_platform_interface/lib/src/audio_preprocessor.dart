@@ -18,9 +18,7 @@ class AudioPreprocessor {
   /// Behavior:
   /// - If [audio] < 128,000, it is **left-padded** with zeros.
   /// - If [audio] > 128,000, it is **cropped** to the most recent samples.
-  /// - Applies a 5ms (80 samples) linear fade-in to the start of the audio
-  ///   signal (post-padding) to prevent impulsive noise (clicks) from
-  ///   triggering false "complete" detections.
+  /// - Applies per-utterance zero-mean / unit-variance normalization.
   static Float32List prepareInput(Float32List audio) {
     final result = Float32List(kMaxSamples);
 
@@ -80,7 +78,12 @@ class AudioPreprocessor {
   /// By passing [Uint8List.offsetInBytes] and the derived sample count we
   /// ensure only the intended slice is converted.
   static Float32List bytesToFloat32(Uint8List bytes) {
-    assert(bytes.lengthInBytes % 2 == 0, 'bytesToFloat32 expects an even number of bytes');
+    if (!bytes.lengthInBytes.isEven) {
+      throw ArgumentError(
+        'bytesToFloat32 expects an even number of bytes, '
+        'got ${bytes.lengthInBytes}',
+      );
+    }
     final int16Data = bytes.buffer.asInt16List(
       bytes.offsetInBytes,
       bytes.lengthInBytes ~/ 2,
@@ -107,6 +110,7 @@ class AudioPreprocessor {
     return output;
   }
 
+  /// Computes Root Mean Square (RMS) energy for [audio] samples.
   static double computeRms(Float32List audio) {
     if (audio.isEmpty) return 0;
     var sumSquares = 0.0;

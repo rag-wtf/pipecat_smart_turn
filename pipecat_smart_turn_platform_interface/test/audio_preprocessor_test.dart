@@ -11,7 +11,9 @@ void main() {
       expect(result.length, equals(128000));
       // Verify zero-mean and unit-variance
       var sum = 0.0;
-      for (final s in result) sum += s;
+      for (final s in result) {
+        sum += s;
+      }
       expect(sum / 128000, closeTo(0.0, 1e-4));
 
       var variance = 0.0;
@@ -20,7 +22,8 @@ void main() {
       }
       expect(variance / 128000, closeTo(1.0, 1e-4));
 
-      // Check left padding implies first elements are equal to each other (since they were all 0s)
+      // Check left padding implies first elements are equal to each other
+      // (since they were all 0s)
       expect(result[0], equals(result[1000]));
       // Check the jump happens at 80,000
       expect(result[79999], isNot(equals(result[80000])));
@@ -37,7 +40,9 @@ void main() {
 
       // Verify zero-mean and unit-variance
       var sum = 0.0;
-      for (final s in result) sum += s;
+      for (final s in result) {
+        sum += s;
+      }
       expect(sum / 128000, closeTo(0.0, 1e-4));
 
       var variance = 0.0;
@@ -46,7 +51,8 @@ void main() {
       }
       expect(variance / 128000, closeTo(1.0, 1e-4));
 
-      // Since it's monotonically increasing, the normalized values should be increasing
+      // Since it's monotonically increasing, the normalized values should be
+      // increasing
       expect(result[0] < result[127999], isTrue);
     });
 

@@ -7,6 +7,8 @@ class SmartTurnConfig {
     this.customModelPath,
     this.cpuThreadCount = 1,
     this.useIsolate = true,
+    this.inferenceTimeoutMs = 2000,
+    this.logger,
   }) : assert(
          completionThreshold >= 0.0 && completionThreshold <= 1.0,
          'completionThreshold must be between 0.0 and 1.0',
@@ -18,6 +20,10 @@ class SmartTurnConfig {
        assert(
          cpuThreadCount >= 1,
          'cpuThreadCount must be at least 1',
+       ),
+       assert(
+         inferenceTimeoutMs > 0,
+         'inferenceTimeoutMs must be positive',
        );
 
   /// The probability threshold above which a turn is considered "complete".
@@ -43,4 +49,11 @@ class SmartTurnConfig {
   /// **Recommendation**: Set to `true` for production apps to keep the
   /// main UI thread responsive during the 10-150ms inference window.
   final bool useIsolate;
+
+  /// Inference execution timeout in milliseconds.
+  /// Defaults to 2000 ms.
+  final int inferenceTimeoutMs;
+
+  /// Optional logging callback for diagnostic events and warnings.
+  final void Function(String message)? logger;
 }

@@ -1,9 +1,13 @@
 import 'dart:typed_data';
 
+/// Resolves ONNX library path (stub implementation returns null).
 String? resolveOnnxLibraryPath() => null;
 
+/// Extracts bundled model asset (stub implementation throws UnsupportedError).
 Future<String> extractBundledModel() async {
-  throw UnsupportedError('extractBundledModel is not supported on this platform.');
+  throw UnsupportedError(
+    'extractBundledModel is not supported on this platform.',
+  );
 }
 
 /// Wraps the ONNX Runtime session for Smart Turn v3.
@@ -18,7 +22,7 @@ class SmartTurnOnnxSession {
   }
 
   /// Executes a single forward pass inference.
-  Future<(double, double)> run(Float32List audioSamples) async {
+  Future<double> run(Float32List audioSamples) async {
     throw UnsupportedError('SmartTurnOnnxSession is not supported on the web.');
   }
 

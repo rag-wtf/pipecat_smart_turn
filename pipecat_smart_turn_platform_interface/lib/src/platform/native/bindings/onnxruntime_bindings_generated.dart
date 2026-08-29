@@ -247,8 +247,7 @@ enum ONNXTensorElementDataType {
   ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2(24),
 
   /// maps to 4 packed int2 values (size == 1 byte)
-  ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2(25)
-  ;
+  ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2(25);
 
   final int value;
   const ONNXTensorElementDataType(this.value);
@@ -294,8 +293,7 @@ enum ONNXType {
   ONNX_TYPE_MAP(3),
   ONNX_TYPE_OPAQUE(4),
   ONNX_TYPE_SPARSETENSOR(5),
-  ONNX_TYPE_OPTIONAL(6)
-  ;
+  ONNX_TYPE_OPTIONAL(6);
 
   final int value;
   const ONNXType(this.value);
@@ -318,8 +316,7 @@ enum OrtSparseFormat {
   ORT_SPARSE_UNDEFINED(0),
   ORT_SPARSE_COO(1),
   ORT_SPARSE_CSRC(2),
-  ORT_SPARSE_BLOCK_SPARSE(4)
-  ;
+  ORT_SPARSE_BLOCK_SPARSE(4);
 
   final int value;
   const OrtSparseFormat(this.value);
@@ -338,8 +335,7 @@ enum OrtSparseIndicesFormat {
   ORT_SPARSE_COO_INDICES(0),
   ORT_SPARSE_CSR_INNER_INDICES(1),
   ORT_SPARSE_CSR_OUTER_INDICES(2),
-  ORT_SPARSE_BLOCK_SPARSE_INDICES(3)
-  ;
+  ORT_SPARSE_BLOCK_SPARSE_INDICES(3);
 
   final int value;
   const OrtSparseIndicesFormat(this.value);
@@ -372,8 +368,7 @@ enum OrtLoggingLevel {
   ORT_LOGGING_LEVEL_ERROR(3),
 
   /// < Fatal error messages (most severe).
-  ORT_LOGGING_LEVEL_FATAL(4)
-  ;
+  ORT_LOGGING_LEVEL_FATAL(4);
 
   final int value;
   const OrtLoggingLevel(this.value);
@@ -403,8 +398,7 @@ enum OrtErrorCode {
   ORT_EP_FAIL(11),
   ORT_MODEL_LOAD_CANCELED(12),
   ORT_MODEL_REQUIRES_COMPILATION(13),
-  ORT_NOT_FOUND(14)
-  ;
+  ORT_NOT_FOUND(14);
 
   final int value;
   const OrtErrorCode(this.value);
@@ -438,8 +432,7 @@ enum OrtOpAttrType {
   ORT_OP_ATTR_STRING(5),
   ORT_OP_ATTR_STRINGS(6),
   ORT_OP_ATTR_GRAPH(7),
-  ORT_OP_ATTR_TENSOR(8)
-  ;
+  ORT_OP_ATTR_TENSOR(8);
 
   final int value;
   const OrtOpAttrType(this.value);
@@ -555,8 +548,7 @@ enum OrtExternalMemoryHandleType {
   ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE(0),
 
   /// < Shared HANDLE from ID3D12Device::CreateSharedHandle(heap)
-  ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP(1)
-  ;
+  ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP(1);
 
   final int value;
   const OrtExternalMemoryHandleType(this.value);
@@ -644,8 +636,7 @@ final class OrtExternalMemoryHandle extends ffi.Struct {
 /// \since Version 1.24.
 enum OrtExternalSemaphoreType {
   /// < Shared HANDLE from ID3D12Device::CreateSharedHandle(fence)
-  ORT_EXTERNAL_SEMAPHORE_D3D12_FENCE(0)
-  ;
+  ORT_EXTERNAL_SEMAPHORE_D3D12_FENCE(0);
 
   final int value;
   const OrtExternalSemaphoreType(this.value);
@@ -871,8 +862,7 @@ enum GraphOptimizationLevel {
   ORT_ENABLE_BASIC(1),
   ORT_ENABLE_EXTENDED(2),
   ORT_ENABLE_LAYOUT(3),
-  ORT_ENABLE_ALL(99)
-  ;
+  ORT_ENABLE_ALL(99);
 
   final int value;
   const GraphOptimizationLevel(this.value);
@@ -891,8 +881,7 @@ enum GraphOptimizationLevel {
 
 enum ExecutionMode {
   ORT_SEQUENTIAL(0),
-  ORT_PARALLEL(1)
-  ;
+  ORT_PARALLEL(1);
 
   final int value;
   const ExecutionMode(this.value);
@@ -913,8 +902,7 @@ enum OrtLanguageProjection {
   ORT_PROJECTION_PYTHON(3),
   ORT_PROJECTION_JAVA(4),
   ORT_PROJECTION_WINML(5),
-  ORT_PROJECTION_NODEJS(6)
-  ;
+  ORT_PROJECTION_NODEJS(6);
 
   final int value;
   const OrtLanguageProjection(this.value);
@@ -939,8 +927,7 @@ enum OrtAllocatorType {
   OrtInvalidAllocator(-1),
   OrtDeviceAllocator(0),
   OrtArenaAllocator(1),
-  OrtReadOnlyAllocator(2)
-  ;
+  OrtReadOnlyAllocator(2);
 
   final int value;
   const OrtAllocatorType(this.value);
@@ -965,8 +952,7 @@ enum OrtMemType {
   OrtMemTypeCPUOutput(-1),
 
   /// The default allocator for execution provider
-  OrtMemTypeDefault(0)
-  ;
+  OrtMemTypeDefault(0);
 
   /// CPU accessible memory allocated by non-CPU execution provider, i.e. HOST_ACCESSIBLE
   static const OrtMemTypeCPU = OrtMemTypeCPUOutput;
@@ -998,8 +984,7 @@ enum OrtCudnnConvAlgoSearch {
   OrtCudnnConvAlgoSearchHeuristic(1),
 
   /// default algorithm using CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
-  OrtCudnnConvAlgoSearchDefault(2)
-  ;
+  OrtCudnnConvAlgoSearchDefault(2);
 
   final int value;
   const OrtCudnnConvAlgoSearch(this.value);
@@ -1375,8 +1360,7 @@ enum OrtMemoryInfoDeviceType {
   OrtMemoryInfoDeviceType_CPU(0),
   OrtMemoryInfoDeviceType_GPU(1),
   OrtMemoryInfoDeviceType_FPGA(2),
-  OrtMemoryInfoDeviceType_NPU(3)
-  ;
+  OrtMemoryInfoDeviceType_NPU(3);
 
   final int value;
   const OrtMemoryInfoDeviceType(this.value);
@@ -2358,8 +2342,7 @@ enum OrtExecutionProviderDevicePolicy {
   OrtExecutionProviderDevicePolicy_PREFER_GPU(3),
   OrtExecutionProviderDevicePolicy_MAX_PERFORMANCE(4),
   OrtExecutionProviderDevicePolicy_MAX_EFFICIENCY(5),
-  OrtExecutionProviderDevicePolicy_MIN_OVERALL_POWER(6)
-  ;
+  OrtExecutionProviderDevicePolicy_MIN_OVERALL_POWER(6);
 
   final int value;
   const OrtExecutionProviderDevicePolicy(this.value);
@@ -2426,8 +2409,7 @@ typedef EpSelectionDelegate =
 enum OrtHardwareDeviceType {
   OrtHardwareDeviceType_CPU(0),
   OrtHardwareDeviceType_GPU(1),
-  OrtHardwareDeviceType_NPU(2)
-  ;
+  OrtHardwareDeviceType_NPU(2);
 
   final int value;
   const OrtHardwareDeviceType(this.value);
@@ -2522,8 +2504,7 @@ final class OrtNodeComputeInfo extends ffi.Struct {
 /// \since Version 1.23.
 enum OrtEpDataLayout {
   OrtEpDataLayout_NCHW(0),
-  OrtEpDataLayout_NHWC(1)
-  ;
+  OrtEpDataLayout_NHWC(1);
 
   static const OrtEpDataLayout_Default = OrtEpDataLayout_NCHW;
 
@@ -3075,8 +3056,7 @@ enum OrtCompiledModelCompatibility {
   OrtCompiledModelCompatibility_EP_NOT_APPLICABLE(0),
   OrtCompiledModelCompatibility_EP_SUPPORTED_OPTIMAL(1),
   OrtCompiledModelCompatibility_EP_SUPPORTED_PREFER_RECOMPILATION(2),
-  OrtCompiledModelCompatibility_EP_UNSUPPORTED(3)
-  ;
+  OrtCompiledModelCompatibility_EP_UNSUPPORTED(3);
 
   final int value;
   const OrtCompiledModelCompatibility(this.value);
@@ -3859,8 +3839,7 @@ enum OrtDeviceMemoryType {
   OrtDeviceMemoryType_DEFAULT(0),
 
   /// < Shared/pinned memory for transferring between CPU and the device
-  OrtDeviceMemoryType_HOST_ACCESSIBLE(5)
-  ;
+  OrtDeviceMemoryType_HOST_ACCESSIBLE(5);
 
   final int value;
   const OrtDeviceMemoryType(this.value);
@@ -13851,8 +13830,7 @@ final class OrtApi extends ffi.Struct {
 enum OrtCustomOpInputOutputCharacteristic {
   INPUT_OUTPUT_REQUIRED(0),
   INPUT_OUTPUT_OPTIONAL(1),
-  INPUT_OUTPUT_VARIADIC(2)
-  ;
+  INPUT_OUTPUT_VARIADIC(2);
 
   final int value;
   const OrtCustomOpInputOutputCharacteristic(this.value);
@@ -14106,8 +14084,7 @@ enum OrtDeviceEpIncompatibilityReason {
   OrtDeviceEpIncompatibility_DRIVER_INCOMPATIBLE(1),
   OrtDeviceEpIncompatibility_DEVICE_INCOMPATIBLE(2),
   OrtDeviceEpIncompatibility_MISSING_DEPENDENCY(4),
-  OrtDeviceEpIncompatibility_UNKNOWN(-2147483648)
-  ;
+  OrtDeviceEpIncompatibility_UNKNOWN(-2147483648);
 
   final int value;
   const OrtDeviceEpIncompatibilityReason(this.value);
@@ -14168,8 +14145,7 @@ enum OrtCompileApiFlags {
 
   /// Force compilation to return an error (ORT_FAIL) if a file with the same filename as the output model exists.
   /// Otherwise, compilation will automatically overwrite the output file if it exists.
-  OrtCompileApiFlags_ERROR_IF_OUTPUT_FILE_EXISTS(2)
-  ;
+  OrtCompileApiFlags_ERROR_IF_OUTPUT_FILE_EXISTS(2);
 
   final int value;
   const OrtCompileApiFlags(this.value);

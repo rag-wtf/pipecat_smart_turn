@@ -55,8 +55,7 @@ enum _OrtErrorCode {
   modelLoaded(8),
   notImplemented(9),
   invalidGraph(10),
-  epFail(11)
-  ;
+  epFail(11);
 
   const _OrtErrorCode(this.value);
 

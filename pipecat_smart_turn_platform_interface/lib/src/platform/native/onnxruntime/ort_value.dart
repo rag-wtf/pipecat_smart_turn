@@ -351,8 +351,7 @@ enum ONNXTensorElementDataType {
   float(1),
 
   /// Int64 data type.
-  int64(7)
-  ;
+  int64(7);
 
   const ONNXTensorElementDataType(this.value);
 
@@ -378,8 +377,7 @@ enum ONNXType {
   unknown(0),
 
   /// Tensor value type.
-  tensor(1)
-  ;
+  tensor(1);
 
   const ONNXType(this.value);
 

@@ -7,8 +7,10 @@ import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/mel_spectrogram.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/onnx_runtime_web.dart';
 
+/// Resolves ONNX library path (web implementation returns null).
 String? resolveOnnxLibraryPath() => null;
 
+/// Resolves bundled model path for web asset loading.
 Future<String> extractBundledModel() async {
   return 'assets/$kDefaultModelAssetPath';
 }
@@ -76,7 +78,7 @@ class SmartTurnOnnxSession {
 
       // Model outputs a single probability tensor 'logits' of shape [batch, 1].
       final logitsTensor = outputs['logits'];
-      final probability = logitsTensor.data.toDart[0] as double;
+      final probability = logitsTensor.data.toDart[0];
 
       return probability;
     } on Object catch (e) {

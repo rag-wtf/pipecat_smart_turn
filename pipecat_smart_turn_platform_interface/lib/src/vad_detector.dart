@@ -42,9 +42,9 @@ class EnergyVad {
   /// The number of silent frames to wait before declaring silence.
   final int silenceGraceFrames;
 
-  /// The initial noise floor estimate is set to a low ambient RMS level (0.001).
-  /// The VAD requires a brief warm-up period to adapt this floor to the
-  /// actual environment.
+  /// The initial noise floor estimate is set to a low ambient RMS level
+  /// (0.001). The VAD requires a brief warm-up period to adapt this floor to
+  /// the actual environment.
   double _noiseFloor = 0.001; // Initial floor estimate
   int _silenceCounter = 0;
   bool _isSpeaking = false;

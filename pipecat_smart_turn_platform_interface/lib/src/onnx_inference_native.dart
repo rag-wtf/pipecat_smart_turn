@@ -7,20 +7,25 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/constants.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/exceptions.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/mel_spectrogram.dart';
-import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart' as ffi_bindings;
+import 'package:pipecat_smart_turn_platform_interface/src/platform/native/bindings/bindings.dart'
+    as ffi_bindings;
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_env.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_session.dart';
 import 'package:pipecat_smart_turn_platform_interface/src/platform/native/onnxruntime/ort_value.dart';
 
+/// Resolves the platform-specific ONNX Runtime dynamic library path.
 String? resolveOnnxLibraryPath() => ffi_bindings.resolveOnnxLibraryPath();
 
+/// Extracts the bundled ONNX model asset to the application support directory.
 Future<String> extractBundledModel() async {
   final dir = await getApplicationSupportDirectory();
   final file = File('${dir.path}/$kDefaultModelFilename');
+  final byteData = await rootBundle.load(kDefaultModelAssetPath);
+  final expectedLength = byteData.lengthInBytes;
 
-  // Extract atomically if it doesn't exist to save I/O over-writes on hot restarts.
-  if (!file.existsSync()) {
-    final byteData = await rootBundle.load(kDefaultModelAssetPath);
+  // Re-extract if file doesn't exist or file size does not match asset length.
+  // (H5 fix)
+  if (!file.existsSync() || file.lengthSync() != expectedLength) {
     final tempFile = File('${dir.path}/$kDefaultModelFilename.tmp');
     await tempFile.writeAsBytes(
       byteData.buffer.asUint8List(
@@ -84,27 +89,31 @@ class SmartTurnOnnxSession {
   /// Executes a single forward pass inference.
   ///
   /// [audioSamples] must be exactly 128,000 samples.
-  /// Returns raw logits (incompleteLogit, completeLogit).
+  /// Returns turn completion probability in range [0.0, 1.0].
   Future<double> run(Float32List audioSamples) async {
     if (!_isInitialized || _session == null) {
       throw const SmartTurnNotInitializedException();
     }
 
+    // coverage:ignore-start
+    OrtValueTensor? inputTensor;
+    OrtRunOptions? runOptions;
+    List<OrtValue?>? outputs;
+
     try {
-      // coverage:ignore-start
       // Compute log-mel spectrogram: shape [1, 80, 800] = 64,000 values.
       final melData = MelSpectrogram.compute(audioSamples);
       final inputShape = [1, MelSpectrogram.kNMels, MelSpectrogram.kNumFrames];
-      final inputTensor = OrtValueTensor.createTensorWithDataList(
+      inputTensor = OrtValueTensor.createTensorWithDataList(
         melData,
         inputShape,
       );
 
       final inputs = {'input_features': inputTensor};
-      final runOptions = OrtRunOptions();
+      runOptions = OrtRunOptions();
 
       // Forward pass
-      final outputs = _session!.run(runOptions, inputs);
+      outputs = _session!.run(runOptions, inputs);
 
       // Model outputs a single probability tensor 'logits' of shape [batch, 1].
       final logitsList = outputs[0]?.value as List?;
@@ -113,20 +122,20 @@ class SmartTurnOnnxSession {
       }
       final probability = (logitsList[0] as List)[0] as double;
 
-      // Cleanup native resources
-      inputTensor.release();
-      runOptions.release();
-      for (final element in outputs) {
-        element?.release();
-      }
-
       return probability;
-      // coverage:ignore-end
     } on Object catch (e) {
-      // coverage:ignore-start
+      if (e is SmartTurnInferenceException) rethrow;
       throw SmartTurnInferenceException('ONNX inference failed: $e');
-      // coverage:ignore-end
+    } finally {
+      inputTensor?.release();
+      runOptions?.release();
+      if (outputs != null) {
+        for (final element in outputs) {
+          element?.release();
+        }
+      }
     }
+    // coverage:ignore-end
   }
 
   /// Releases ONNX Runtime session and environment resources.
