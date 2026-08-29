@@ -41,22 +41,26 @@ class AudioPreprocessor {
     }
     final mean = sum / kMaxSamples;
 
-    var variance = 0.0;
+    var sumSqDiff = 0.0;
     for (var i = 0; i < kMaxSamples; i++) {
       final diff = result[i] - mean;
-      variance += diff * diff;
+      sumSqDiff += diff * diff;
     }
 
+    final variance = sumSqDiff / kMaxSamples;
+    final std = math.sqrt(variance);
+
     // Near-silence floor check: avoid amplifying quiet dither noise.
-    if (variance < 1e-8) {
+    // When standard deviation is below 1e-4 (~-80 dBFS), treat as silence.
+    if (std < 1e-4) {
       return Float32List(kMaxSamples);
     }
 
     // Whisper uses variance without Bessel's correction, std = sqrt(var / N)
-    final std = math.max(math.sqrt(variance / kMaxSamples), 1e-5);
+    final safeStd = math.max(std, 1e-5);
 
     for (var i = 0; i < kMaxSamples; i++) {
-      result[i] = (result[i] - mean) / std;
+      result[i] = (result[i] - mean) / safeStd;
     }
 
     return result;

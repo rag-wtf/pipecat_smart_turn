@@ -11,6 +11,12 @@ on:
     paths:
       - "pipecat_smart_turn/pubspec.yaml"
       - "pipecat_smart_turn_platform_interface/pubspec.yaml"
+      - "pipecat_smart_turn_android/pubspec.yaml"
+      - "pipecat_smart_turn_ios/pubspec.yaml"
+      - "pipecat_smart_turn_linux/pubspec.yaml"
+      - "pipecat_smart_turn_macos/pubspec.yaml"
+      - "pipecat_smart_turn_web/pubspec.yaml"
+      - "pipecat_smart_turn_windows/pubspec.yaml"
       - ".github/workflows/license_check.yaml"
   push:
     branches:
@@ -18,6 +24,12 @@ on:
     paths:
       - "pipecat_smart_turn/pubspec.yaml"
       - "pipecat_smart_turn_platform_interface/pubspec.yaml"
+      - "pipecat_smart_turn_android/pubspec.yaml"
+      - "pipecat_smart_turn_ios/pubspec.yaml"
+      - "pipecat_smart_turn_linux/pubspec.yaml"
+      - "pipecat_smart_turn_macos/pubspec.yaml"
+      - "pipecat_smart_turn_web/pubspec.yaml"
+      - "pipecat_smart_turn_windows/pubspec.yaml"
       - ".github/workflows/license_check.yaml"
 
 jobs:

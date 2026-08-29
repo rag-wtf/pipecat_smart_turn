@@ -8,19 +8,22 @@ import 'package:pipecat_smart_turn_platform_interface/src/audio_preprocessor.dar
 class AudioBuffer {
   /// Creates an [AudioBuffer] that holds up to [maxSeconds] of audio.
   AudioBuffer({double maxSeconds = 8.0})
-    : assert(maxSeconds > 0.0, 'maxSeconds must be greater than zero'),
-      maxSamples = maxSeconds > 0.0
-          ? (maxSeconds * AudioPreprocessor.kSampleRate).toInt()
-          : throw ArgumentError.value(
-              maxSeconds,
-              'maxSeconds',
-              'maxSeconds must be greater than zero',
-            ),
-      _buffer = Float32List(
-        maxSeconds > 0.0
-            ? (maxSeconds * AudioPreprocessor.kSampleRate).toInt()
-            : 0,
+    : this._withCapacity(_validateAndComputeCapacity(maxSeconds));
+
+  AudioBuffer._withCapacity(int capacity)
+    : maxSamples = capacity,
+      _buffer = Float32List(capacity);
+
+  static int _validateAndComputeCapacity(double maxSeconds) {
+    if (maxSeconds <= 0.0) {
+      throw ArgumentError.value(
+        maxSeconds,
+        'maxSeconds',
+        'maxSeconds must be greater than zero',
       );
+    }
+    return (maxSeconds * AudioPreprocessor.kSampleRate).toInt();
+  }
 
   /// The maximum number of samples the buffer can hold.
   final int maxSamples;

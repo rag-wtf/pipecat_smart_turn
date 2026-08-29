@@ -60,8 +60,12 @@ echo "Installing very_good_cli..."
 dart pub global activate very_good_cli
 
 # Retrieve project packages
-echo "Running dart pub get..."
-dart pub get
+echo "Running pub get across packages..."
+for pkg in pipecat_smart_turn pipecat_smart_turn_platform_interface pipecat_smart_turn_android pipecat_smart_turn_ios pipecat_smart_turn_linux pipecat_smart_turn_macos pipecat_smart_turn_web pipecat_smart_turn_windows; do
+  if [ -d "$pkg" ]; then
+    (cd "$pkg" && flutter pub get || dart pub get)
+  fi
+done
 
 # Download missing ONNX Runtime native binaries if needed
 if [ -f "scripts/download_onnxruntime.sh" ]; then

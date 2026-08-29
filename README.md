@@ -20,8 +20,8 @@ On-device Semantic Voice Activity Detection (VAD) for Flutter, powered by Smart 
 
 ## Getting Started
 
-1. **Acquire the Model**: Smart Turn requires an ONNX model file. Follow the [Model Acquisition Guide](docs/model-acquisition.md).
-2. **Platform Setup**: Configure your platform-specific path handling. See [Platform Configuration](docs/platform-configuration.md).
+1. **Bundled Model**: Smart Turn automatically bundles `smart-turn-v3.2-cpu.onnx`. Custom models can be supplied via `SmartTurnConfig.customModelPath`.
+2. **Platform Setup**: Configure platform-specific paths if needed. See [Platform Configuration](docs/platform-configuration.md).
 3. **Web Support**: To support the Web platform, include the `onnxruntime-web` script in your `web/index.html`:
 
 ```html
@@ -32,11 +32,7 @@ On-device Semantic Voice Activity Detection (VAD) for Flutter, powered by Smart 
 ## Quick Start
 
 ```dart
-final config = SmartTurnConfig(
-  customModelPath: '/path/to/smart_turn_v3.onnx',
-);
-
-final detector = SmartTurnDetector(config: config);
+final detector = SmartTurnDetector();
 await detector.initialize();
 
 // In your audio processing loop:
@@ -47,7 +43,7 @@ if (result?.isComplete ?? false) {
 ```
 
 [coverage_badge]: pipecat_smart_turn/coverage_badge.svg
-[license_badge]: https://img.shields.io/badge/license-BSD-2.svg
+[license_badge]: https://img.shields.io/badge/license-BSD--2--Clause-blue.svg
 [license_link]: https://opensource.org/licenses/BSD-2-Clause
 [logo_black]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_black.png#gh-light-mode-only
 [logo_white]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_white.png#gh-dark-mode-only

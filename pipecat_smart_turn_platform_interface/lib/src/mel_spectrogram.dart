@@ -44,6 +44,12 @@ class MelSpectrogram {
   /// Number of unique FFT frequency bins = kFftSize / 2 + 1.
   static const int kNFreqs = kFftSize ~/ 2 + 1; // 201
 
+  /// First 2D FFT factorization radix dimension (16 x 25 = 400).
+  static const int kFftRadix1 = 16;
+
+  /// Second 2D FFT factorization radix dimension (16 x 25 = 400).
+  static const int kFftRadix2 = 25;
+
   // Cached Hann window (length kNFft).
   static final Float64List _hannWindow = _buildHannWindow();
 
