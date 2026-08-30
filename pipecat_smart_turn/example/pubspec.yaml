@@ -20,8 +20,14 @@ dependencies:
   # platform plugin and bundles its native libraries (e.g. libonnxruntime.so).
   pipecat_smart_turn_android:
     path: ../../pipecat_smart_turn_android
+  pipecat_smart_turn_ios:
+    path: ../../pipecat_smart_turn_ios
   pipecat_smart_turn_linux:
     path: ../../pipecat_smart_turn_linux
+  pipecat_smart_turn_macos:
+    path: ../../pipecat_smart_turn_macos
+  pipecat_smart_turn_web:
+    path: ../../pipecat_smart_turn_web
   pipecat_smart_turn_windows:
     path: ../../pipecat_smart_turn_windows
   record: ^6.2.0

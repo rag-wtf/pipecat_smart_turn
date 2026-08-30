@@ -278,7 +278,7 @@ packages:
     source: path
     version: "0.1.0+1"
   pipecat_smart_turn_ios:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../../pipecat_smart_turn_ios"
       relative: true
@@ -292,7 +292,7 @@ packages:
     source: path
     version: "0.1.0+1"
   pipecat_smart_turn_macos:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../../pipecat_smart_turn_macos"
       relative: true
@@ -306,7 +306,7 @@ packages:
     source: path
     version: "0.1.0+1"
   pipecat_smart_turn_web:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../../pipecat_smart_turn_web"
       relative: true

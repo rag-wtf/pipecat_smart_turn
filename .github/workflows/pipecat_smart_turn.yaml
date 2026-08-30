@@ -77,26 +77,11 @@ jobs:
           flutter-version: 3.41.1
           cache: true
 
-      - name: AVD Cache
-        uses: actions/cache@v4
-        id: avd-cache
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-31-x86_64
-
-      - name: Cache AVD Snapshot
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 31
-          arch: x86_64
-          target: google_apis
-          force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: false
-          script: echo "Generated AVD snapshot for caching."
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
 
       - name: Build Debug APK
         run: flutter build apk --debug
@@ -107,8 +92,9 @@ jobs:
           api-level: 31
           arch: x86_64
           target: google_apis
+          profile: Nexus 6
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: flutter test integration_test/app_test.dart -d emulator-5554
           working-directory: pipecat_smart_turn/example
@@ -128,18 +114,16 @@ jobs:
           flutter-version: 3.41.1
           cache: true
 
-      - name: Start Simulator
-        # Start an iPhone simulator
-        run: |
-          UDID=$(xcrun xctrace list devices | grep "^iPhone" | awk '{gsub(/[()]/,""); print $NF}' | head -n 1)
-          echo "Simulator UDID: $UDID"
-          open -a Simulator --args -CurrentDeviceUDID "$UDID"
-          xcrun simctl boot "${UDID:?No Simulator with this name found}" || true
-          xcrun simctl bootstatus "$UDID" -b
-          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+      - name: Start iOS Simulator
+        uses: futureware-tech/simulator-action@v3
+        with:
+          model: 'iPhone 15'
+
+      - name: Prebuild iOS app
+        run: flutter build ios --simulator --debug
 
       - name: E2E Tests
-        run: flutter test integration_test/app_test.dart -d "$SIMULATOR_UDID"
+        run: flutter test integration_test/app_test.dart
 
   linux:
     runs-on: ubuntu-latest
