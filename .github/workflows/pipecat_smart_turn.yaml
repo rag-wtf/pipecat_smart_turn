@@ -114,16 +114,19 @@ jobs:
           flutter-version: 3.41.1
           cache: true
 
-      - name: Start iOS Simulator
-        uses: futureware-tech/simulator-action@v3
-        with:
-          model: 'iPhone 16'
+      - name: Start Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -E "iPhone" | head -n 1 | grep -o -E '[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}')
+          echo "Simulator UDID: $UDID"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
 
-      - name: Prebuild iOS app
+      - name: Prebuild iOS App
         run: flutter build ios --simulator --debug
 
       - name: E2E Tests
-        run: flutter test integration_test/app_test.dart
+        run: flutter test integration_test/app_test.dart -d "$SIMULATOR_UDID"
 
   linux:
     runs-on: ubuntu-latest
