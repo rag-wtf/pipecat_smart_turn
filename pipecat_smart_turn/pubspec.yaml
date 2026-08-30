@@ -1,6 +1,6 @@
 name: pipecat_smart_turn
 description: Cross-platform Flutter plugin for Pipecat Smart Turn v3 semantic endpointing.
-version: 0.1.0+1
+version: 0.1.0+2
 homepage: https://github.com/rag-wtf/pipecat_smart_turn
 repository: https://github.com/rag-wtf/pipecat_smart_turn
 
