@@ -39,6 +39,17 @@ if (result?.isComplete ?? false) {
 }
 ```
 
+## Publishing
+
+This is a federated plugin: `pipecat_smart_turn` and its support packages are
+published to pub.dev independently under the [`rag.wtf`][rag_wtf_publisher]
+publisher. Releases are automated with GitHub Actions (keyless OIDC) — push a
+`v{{version}}` tag and the pipeline publishes all matching packages in
+dependency order. See [docs/publishing.md](docs/publishing.md) for the
+one-time pub.dev admin setup and the release workflow.
+
+[rag_wtf_publisher]: https://pub.dev/publishers/rag.wtf
+
 [coverage_badge]: pipecat_smart_turn/coverage_badge.svg
 [license_badge]: https://img.shields.io/badge/license-BSD--2--Clause-blue.svg
 [license_link]: https://opensource.org/licenses/BSD-2-Clause

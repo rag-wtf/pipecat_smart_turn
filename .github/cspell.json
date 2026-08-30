@@ -87,6 +87,15 @@
     "gtbluesky",
     "masic",
     "yourorg",
-    "huggingface"
+    "huggingface",
+    "OIDC",
+    "keyless",
+    "federated",
+    "topological",
+    "melos",
+    "pubspec",
+    "lockstep",
+    "wtf",
+    "deps"
   ]
 }
