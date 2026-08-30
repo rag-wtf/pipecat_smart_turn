@@ -1,4 +1,6 @@
 analyzer:
   exclude:
     - build/**
+  errors:
+    invalid_dependency: ignore
 include: package:very_good_analysis/analysis_options.yaml
