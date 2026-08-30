@@ -114,4 +114,6 @@ for pkg in "${ORDER[@]}"; do
 done
 
 echo "==> Done: $published published, $skipped skipped (tag filter), in $WORK_DIR"
-[[ -n "$PUBLISH_DRY_RUN" ]] && echo "(dry run -- nothing was uploaded)"
+if [[ -n "$PUBLISH_DRY_RUN" ]]; then
+  echo "(dry run -- nothing was uploaded)"
+fi
