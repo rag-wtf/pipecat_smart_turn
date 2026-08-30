@@ -117,7 +117,7 @@ jobs:
       - name: Start iOS Simulator
         uses: futureware-tech/simulator-action@v3
         with:
-          model: 'iPhone 15'
+          model: 'iPhone 16'
 
       - name: Prebuild iOS app
         run: flutter build ios --simulator --debug
