@@ -47,9 +47,10 @@ jobs:
     name: Publish to pub.dev
     # Only publish after validation passes.
     needs: validate
-    # Keyless OIDC publishing: pub.dev cryptographically verifies the pushed
-    # release tag against each package admin configuration (tag pattern
-    # `v{{version}}`). No secrets or manual approval are involved.
+    # Keyless OIDC publishing: setup-dart requests an OIDC token from GitHub
+    # (audience https://pub.dev) and exports it as PUB_TOKEN; pub.dev
+    # cryptographically verifies it against each package admin configuration
+    # (tag pattern `v{{version}}`). No secrets or manual approval are involved.
     permissions:
       id-token: write # Required for the OIDC token exchange with pub.dev.
       contents: read
@@ -57,6 +58,10 @@ jobs:
     steps:
       - name: 📚 Git Checkout
         uses: actions/checkout@v4
+
+      # Provisions the pub.dev OIDC token as PUB_TOKEN (needs id-token: write).
+      - name: 🐦 Setup Dart (provision OIDC token)
+        uses: dart-lang/setup-dart@v1
 
       - name: 🐦 Setup Flutter
         uses: subosito/flutter-action@v2
