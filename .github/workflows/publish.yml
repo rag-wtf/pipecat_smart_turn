@@ -1,0 +1,76 @@
+name: publish
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Validate packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+          cache: true
+
+      - name: 🔎 Analyze
+        run: |
+          for pkg in pipecat_smart_turn_platform_interface pipecat_smart_turn_android pipecat_smart_turn_ios pipecat_smart_turn_linux pipecat_smart_turn_macos pipecat_smart_turn_web pipecat_smart_turn_windows pipecat_smart_turn; do
+            echo "==> flutter analyze: $pkg"
+            (cd "$pkg" && flutter analyze)
+          done
+
+      - name: 🧪 Test
+        run: |
+          for pkg in pipecat_smart_turn_platform_interface pipecat_smart_turn_android pipecat_smart_turn_ios pipecat_smart_turn_linux pipecat_smart_turn_macos pipecat_smart_turn_web pipecat_smart_turn_windows pipecat_smart_turn; do
+            echo "==> flutter test: $pkg"
+            (cd "$pkg" && flutter test)
+          done
+
+      - name: 📦 Dry-run publish
+        run: |
+          chmod +x scripts/publish_packages.sh
+          PUBLISH_DRY_RUN=1 scripts/publish_packages.sh
+
+  publish:
+    name: Publish to pub.dev
+    # Keyless OIDC publishing: pub.dev cryptographically verifies the pushed
+    # v* tag against each package admin configuration (tag pattern
+    # `v{{version}}`). No secrets are involved.
+    #
+    # If "Require GitHub Actions environment" was enabled in the pub.dev admin
+    # panel, the environment must be named `pub.dev` (matching the block
+    # below) and the environment's required reviewers act as a release gate.
+    environment: pub.dev
+    if: startsWith(github.ref, 'refs/tags/v') && github.ref_type == 'tag'
+    permissions:
+      id-token: write # Required for the OIDC token exchange with pub.dev.
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.1
+          cache: true
+
+      - name: 🚀 Publish packages (topological order)
+        run: |
+          chmod +x scripts/publish_packages.sh
+          scripts/publish_packages.sh
